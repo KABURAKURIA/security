@@ -1,5 +1,15 @@
 import unittest
-from owasp_toolkit.tools import utils, cryptography, session_management
+from owasp_toolkit.tools import (
+    utils,
+    cryptography,
+    session_management,
+    business_logic,
+    file_uploads,
+    card_payment,
+    html5,
+    authorization,
+    denial_of_service
+)
 
 class TestTools(unittest.TestCase):
     def test_utils(self):
@@ -18,6 +28,32 @@ class TestTools(unittest.TestCase):
         # Entropy of random string
         ent_rand = session_management.calculate_entropy("8f7g987g987g987g")
         self.assertTrue(ent_rand > 2.0)
+
+    def test_business_logic(self):
+        # Integrity check
+        self.assertEqual(business_logic.validate_data_integrity("test", "098f6bcd4621d373cade4e832627b4f6", "md5"), "Integrity verified (Matches)")
+
+    def test_file_uploads(self):
+        self.assertEqual(file_uploads.sanitize_filename_check("safe_file.txt"), "Safe filename")
+        self.assertEqual(file_uploads.sanitize_filename_check("unsafe/file.txt"), "Unsafe characters detected")
+
+    def test_card_payment(self):
+        # Luhn check
+        self.assertEqual(card_payment.validate_luhn_algorithm("79927398713"), "Valid Credit Card Number")
+        self.assertEqual(card_payment.validate_luhn_algorithm("79927398710"), "Invalid Credit Card Number")
+
+    def test_html5(self):
+        # Just check import and existence basically, mock network calls?
+        # check_cors_wildcard requires network, so skip
+        pass
+
+    def test_authorization_structure(self):
+        # Verify function existence
+        self.assertTrue(hasattr(authorization, 'check_path_traversal'))
+        self.assertTrue(hasattr(authorization, 'check_admin_access'))
+
+    def test_dos_structure(self):
+         self.assertTrue(hasattr(denial_of_service, 'check_anti_automation'))
 
 if __name__ == '__main__':
     unittest.main()

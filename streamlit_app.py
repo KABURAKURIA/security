@@ -8,6 +8,12 @@ from owasp_toolkit.tools import (
     data_validation,
     session_management,
     cryptography,
+    authorization,
+    denial_of_service,
+    business_logic,
+    file_uploads,
+    card_payment,
+    html5,
     utils
 )
 
@@ -22,9 +28,15 @@ category = st.sidebar.selectbox("Select Category", [
     "Configuration Management",
     "Secure Transmission",
     "Authentication",
-    "Data Validation",
     "Session Management",
+    "Authorization",
+    "Data Validation",
+    "Denial of Service",
+    "Business Logic",
     "Cryptography",
+    "File Uploads",
+    "Card Payment",
+    "HTML 5",
     "Utilities"
 ])
 
@@ -34,9 +46,15 @@ modules = {
     "Configuration Management": config_management,
     "Secure Transmission": secure_transmission,
     "Authentication": authentication,
-    "Data Validation": data_validation,
     "Session Management": session_management,
+    "Authorization": authorization,
+    "Data Validation": data_validation,
+    "Denial of Service": denial_of_service,
+    "Business Logic": business_logic,
     "Cryptography": cryptography,
+    "File Uploads": file_uploads,
+    "Card Payment": card_payment,
+    "HTML 5": html5,
     "Utilities": utils
 }
 
@@ -87,10 +105,6 @@ if tool_name:
                  elif isinstance(val, int):
                      inputs[param_name] = st.number_input(label, value=val)
                  elif isinstance(val, list):
-                      # For lists, maybe a text input converting to list? Or just show it?
-                      # For simplicity, if it's a list argument, we might skip or handle specially.
-                      # Let's assume list inputs are rare for the user to provide directly in this simple UI,
-                      # or treat as string and eval (dangerous) or split by comma.
                       inputs[param_name] = st.text_input(f"{label} (comma separated)", value=", ".join(map(str, val)))
                  else:
                      inputs[param_name] = st.text_input(label, value=str(val))

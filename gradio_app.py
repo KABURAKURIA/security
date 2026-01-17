@@ -7,6 +7,12 @@ from owasp_toolkit.tools import (
     data_validation,
     session_management,
     cryptography,
+    authorization,
+    denial_of_service,
+    business_logic,
+    file_uploads,
+    card_payment,
+    html5,
     utils
 )
 
@@ -45,6 +51,28 @@ def password_tool(password):
     strength = authentication.check_password_strength(password)
     entropy = session_management.calculate_entropy(password)
     return f"Strength: {strength}\nEntropy: {entropy}"
+
+def misc_checks(url, check_type):
+    if check_type == "CORS Check":
+        return html5.check_cors_wildcard(url)
+    elif check_type == "Offline Manifest":
+        return html5.check_offline_manifest(url)
+    elif check_type == "Payment HTTPS":
+        return card_payment.check_payment_gateway_https(url)
+    elif check_type == "Admin Access":
+        return str(authorization.check_admin_access(url))
+    elif check_type == "Slowloris Check":
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        host = parsed.hostname
+        port = parsed.port
+        if not port:
+            port = 443 if parsed.scheme == 'https' else 80
+        if not host:
+             # Fallback if no scheme provided
+             host = url.split(':')[0] if ':' in url else url
+        return denial_of_service.check_slowloris_susceptibility(host, port)
+    return "Unknown check"
 
 # Build UI
 with gr.Blocks(title="OWASP Security Toolkit") as demo:
@@ -86,6 +114,16 @@ with gr.Blocks(title="OWASP Security Toolkit") as demo:
         pw_btn = gr.Button("Analyze")
         pw_output = gr.Textbox(label="Analysis")
         pw_btn.click(password_tool, inputs=pw_input, outputs=pw_output)
+
+    with gr.Tab("Advanced Checks"):
+        gr.Markdown("Run specific vulnerability checks.")
+        adv_url = gr.Textbox(label="URL", value="http://example.com")
+        adv_op = gr.Dropdown([
+            "CORS Check", "Offline Manifest", "Payment HTTPS", "Admin Access", "Slowloris Check"
+        ], label="Check Type")
+        adv_btn = gr.Button("Run Check")
+        adv_output = gr.Textbox(label="Result")
+        adv_btn.click(misc_checks, inputs=[adv_url, adv_op], outputs=adv_output)
 
 if __name__ == "__main__":
     demo.launch()
