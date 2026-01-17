@@ -1,0 +1,8 @@
+streamlit
+gradio
+requests
+beautifulsoup4
+dnspython
+cryptography
+fake-useragent
+python-whois
