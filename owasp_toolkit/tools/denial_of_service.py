@@ -3,7 +3,7 @@ import time
 import socket
 import threading
 
-def check_anti_automation(url, form_data):
+def check_anti_automation(url: str, form_data: dict):
     """
     Checks if multiple rapid submissions are allowed (lack of rate limiting/CAPTCHA).
     """

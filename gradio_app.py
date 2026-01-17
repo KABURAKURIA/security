@@ -1,5 +1,7 @@
 import gradio as gr
 import inspect
+import json
+import typing
 from owasp_toolkit.tools import (
     info_gathering,
     config_management,
@@ -96,14 +98,21 @@ modules = {
 def create_interface(func):
     """Generates a Gradio Interface for a given function."""
     sig = inspect.signature(func)
+    type_hints = typing.get_type_hints(func)
     inputs = []
 
     for param_name, param in sig.parameters.items():
         label = param_name.replace("_", " ").title()
 
         default_val = param.default if param.default != inspect.Parameter.empty else None
+        param_type = type_hints.get(param_name)
 
-        if param_name == 'url':
+        if param_type == dict:
+             val = "{}"
+             if isinstance(default_val, dict):
+                 val = json.dumps(default_val)
+             inputs.append(gr.Textbox(label=f"{label} (JSON)", value=val, lines=3))
+        elif param_name == 'url':
             inputs.append(gr.Textbox(label=label, value="http://example.com"))
         elif param_name == 'domain':
             inputs.append(gr.Textbox(label=label, value="example.com"))
@@ -133,6 +142,14 @@ def create_interface(func):
         for i, arg in enumerate(final_args):
             param_name = list(sig.parameters.keys())[i]
             param_default = sig.parameters[param_name].default
+            param_type = type_hints.get(param_name)
+
+            if param_type == dict and isinstance(arg, str):
+                try:
+                    converted_args.append(json.loads(arg))
+                except Exception as e:
+                    return f"Error parsing JSON for {param_name}: {e}"
+                continue
 
             if isinstance(param_default, list) and isinstance(arg, str):
                  try:
