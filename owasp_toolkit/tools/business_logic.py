@@ -62,7 +62,7 @@ def analyze_workflow_bypass(steps_urls):
     except Exception as e:
         return str(e)
 
-def check_parameter_manipulation(url, params):
+def check_parameter_manipulation(url: str, params: dict):
     """
     Checks if changing parameter values (e.g. price, quantity) works.
     This is a simulation helper.

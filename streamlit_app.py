@@ -1,6 +1,8 @@
 
 import streamlit as st
 import inspect
+import json
+import typing
 from owasp_toolkit.tools import (
     info_gathering,
     config_management,
@@ -185,6 +187,7 @@ if tool_name:
         # Introspect arguments
         sig = inspect.signature(func)
         params = sig.parameters
+        type_hints = typing.get_type_hints(func)
 
         inputs = {}
         with st.form(key=tool_name):
@@ -192,6 +195,8 @@ if tool_name:
 
             for i, (param_name, param) in enumerate(params.items()):
                 col = cols[i % 2]
+
+                param_type = type_hints.get(param_name)
 
                 with col:
                     label = param_name.replace("_", " ").title()
@@ -201,7 +206,12 @@ if tool_name:
                     if param.default != inspect.Parameter.empty:
                         default_val = param.default
 
-                    if param_name == 'url':
+                    if param_type == dict:
+                        val = "{}"
+                        if isinstance(default_val, dict):
+                            val = json.dumps(default_val)
+                        inputs[param_name] = st.text_area(f"{label} (JSON)", value=val)
+                    elif param_name == 'url':
                         inputs[param_name] = st.text_input(label, value="http://example.com")
                     elif param_name == 'domain':
                         inputs[param_name] = st.text_input(label, value="example.com")
@@ -229,7 +239,19 @@ if tool_name:
                 try:
                     # Pre-process inputs
                     final_args = {}
+                    type_hints = typing.get_type_hints(func)
+
                     for k, v in inputs.items():
+                        param_type = type_hints.get(k)
+
+                        if param_type == dict and isinstance(v, str):
+                            try:
+                                final_args[k] = json.loads(v)
+                            except Exception as e:
+                                st.error(f"Invalid JSON for {k}: {e}")
+                                st.stop()
+                            continue
+
                         # Handle list conversion
                         if isinstance(params[k].default, list) and isinstance(v, str):
                             try:
