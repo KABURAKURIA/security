@@ -2,6 +2,7 @@ import time
 import math
 import base64
 import json
+import requests
 from typing import List, Dict, Union, Any
 
 def calculate_entropy(string: str) -> float:
@@ -71,7 +72,6 @@ def check_jwt_expiration(token: str) -> Dict[str, Any]:
         return {"status": "error", "message": "Invalid JWT"}
 
 def check_cookie_path(url: str, cookie_name: str) -> Dict[str, Any]:
-    import requests
     try:
         res = requests.head(url, timeout=5)
         for c in res.cookies:
@@ -82,12 +82,73 @@ def check_cookie_path(url: str, cookie_name: str) -> Dict[str, Any]:
         return {"status": "error", "message": str(e)}
 
 def check_cookie_domain(url: str, cookie_name: str) -> Dict[str, Any]:
-    import requests
     try:
         res = requests.head(url, timeout=5)
         for c in res.cookies:
             if c.name == cookie_name:
                 return {"status": "found", "domain": c.domain, "message": f"Domain attribute: {c.domain}"}
         return {"status": "not_found", "message": "Cookie not found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def test_session_puzzling(url: str, vector: str) -> Dict[str, Any]:
+    """
+    Checks if application uses session variables based on user input (Session Puzzling).
+    'vector' is a parameter that might populate session (e.g., 'username').
+    """
+    try:
+        # Heuristic: Check if the vector reflects in subsequent requests (stateful)
+        s = requests.Session()
+        target = f"{url}?{vector}=SessionPuzzlingTest" if '?' not in url else f"{url}&{vector}=SessionPuzzlingTest"
+        s.get(target, timeout=5)
+
+        # Second request to check if it persisted without passing it again
+        res = s.get(url, timeout=5)
+        if "SessionPuzzlingTest" in res.text:
+             return {"status": "warning", "message": "Input data persisted in session (Potential Session Puzzling)"}
+        return {"status": "safe", "message": "Data did not persist in session"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_session_termination_logout(logout_url: str) -> Dict[str, Any]:
+    """
+    Verifies if the session is invalidated after logout.
+    """
+    try:
+        s = requests.Session()
+        # Assume we are logged in or get a cookie (Need a login function helper, but this is a tool for manual URL inputs mostly)
+        # This is hard to automate without credentials.
+        # But we can check if the logout URL sets 'Set-Cookie' to clear session.
+        res = s.get(logout_url, timeout=5)
+
+        cleared = False
+        for c in res.cookies:
+            if c.expires is not None and c.expires <= time.time():
+                cleared = True
+
+        if cleared or "Set-Cookie" in res.headers:
+             return {"status": "success", "message": "Logout URL attempts to clear cookies"}
+        return {"status": "warning", "message": "No obvious cookie clearing detected on logout"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def test_multiple_simultaneous_sessions(url: str, username: str) -> Dict[str, Any]:
+    """
+    Checks if multiple sessions are allowed (Generic description).
+    """
+    return {"status": "info", "message": "This test requires two active sessions to be manually verified. Automated check not feasible without credential pairs."}
+
+def check_session_fixation(url: str) -> Dict[str, Any]:
+    """
+    Checks if the application accepts a session ID from the URL (Session Fixation).
+    """
+    try:
+        fake_session = "1234567890FAKE"
+        target = f"{url}?JSESSIONID={fake_session}" if '?' not in url else f"{url}&JSESSIONID={fake_session}"
+
+        res = requests.get(target, timeout=5)
+        if f"JSESSIONID={fake_session}" in res.headers.get('Set-Cookie', ''):
+             return {"status": "vulnerable", "message": "Server accepted and set the provided Session ID (Session Fixation Risk)"}
+        return {"status": "safe", "message": "Server did not reflect the provided Session ID in Set-Cookie"}
     except Exception as e:
         return {"status": "error", "message": str(e)}

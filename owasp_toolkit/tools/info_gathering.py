@@ -4,7 +4,7 @@ import whois
 import dns.resolver
 from bs4 import BeautifulSoup, Comment
 import re
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 from fake_useragent import UserAgent
 from typing import List, Dict, Union, Any
 
@@ -171,5 +171,121 @@ def check_mobile_version(url: str) -> Dict[str, Any]:
         if diff > 50: # Allow small variance
             return {"status": "difference_detected", "message": "Different content detected (Size mismatch)", "desktop_size": len(res_desktop.text), "mobile_size": len(res_mobile.text)}
         return {"status": "no_difference", "message": "Content appears similar size"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def spider_crawl(url: str, max_depth: int = 2) -> Dict[str, Any]:
+    """
+    Recursively finds internal links up to max_depth.
+    Basic spidering.
+    """
+    try:
+        visited = set()
+        queue = [(url, 0)]
+        found_urls = set()
+        base_domain = urlparse(url).netloc
+
+        while queue:
+            current_url, depth = queue.pop(0)
+            if depth > max_depth or current_url in visited:
+                continue
+
+            visited.add(current_url)
+            found_urls.add(current_url)
+
+            try:
+                res = requests.get(current_url, timeout=3)
+                if res.status_code == 200:
+                    soup = BeautifulSoup(res.text, 'html.parser')
+                    for a in soup.find_all('a', href=True):
+                        link = urljoin(current_url, a['href'])
+                        if urlparse(link).netloc == base_domain:
+                            if link not in visited:
+                                queue.append((link, depth + 1))
+            except:
+                pass
+
+        return {"status": "success", "crawled_count": len(found_urls), "urls": list(found_urls)}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_entry_points(url: str) -> Dict[str, Any]:
+    """
+    Identifies inputs and entry points (forms, parameters).
+    """
+    try:
+        res = requests.get(url, timeout=5)
+        soup = BeautifulSoup(res.text, 'html.parser')
+
+        entry_points = []
+        # Find Forms
+        for form in soup.find_all('form'):
+            action = form.get('action')
+            method = form.get('method', 'get').upper()
+            inputs = [i.get('name') for i in form.find_all('input') if i.get('name')]
+            entry_points.append(f"Form: {method} {action} Inputs: {inputs}")
+
+        # Find URL params in links
+        for a in soup.find_all('a', href=True):
+            if '?' in a['href']:
+                entry_points.append(f"URL Param: {a['href']}")
+
+        return {"status": "success", "entry_points": entry_points}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def fingerprint_web_application(url: str) -> Dict[str, Any]:
+    """
+    Attempts to fingerprint the application using heuristic signatures (Wappalyzer-lite).
+    """
+    try:
+        res = requests.get(url, timeout=5)
+        html = res.text.lower()
+        headers = res.headers
+
+        detected = []
+
+        # WordPress
+        if "wp-content" in html or "wordpress" in html: detected.append("WordPress")
+        # Joomla
+        if "joomla" in html: detected.append("Joomla")
+        # Drupal
+        if "drupal" in html: detected.append("Drupal")
+        # Django
+        if "csrftoken" in res.cookies or "django" in html: detected.append("Django")
+        # Flask (often no signature, but sometimes session cookie name)
+        if "session" in res.cookies and len(res.cookies["session"]) > 20: detected.append("Flask (Potential)")
+        # React
+        if "react" in html or "main.chunk.js" in html: detected.append("React")
+        # Angular
+        if "ng-version" in html or "app-root" in html: detected.append("Angular")
+
+        return {"status": "success", "technologies": detected if detected else ["Unknown"]}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_third_party_content(url: str) -> Dict[str, Any]:
+    """
+    Identifies third-party scripts/content (e.g., CDN, Analytics).
+    """
+    try:
+        res = requests.get(url, timeout=5)
+        soup = BeautifulSoup(res.text, 'html.parser')
+        base_domain = urlparse(url).netloc
+
+        third_party = set()
+        for script in soup.find_all('script', src=True):
+            src = script['src']
+            domain = urlparse(src).netloc
+            if domain and domain != base_domain:
+                third_party.add(domain)
+
+        for link in soup.find_all('link', href=True):
+             href = link['href']
+             domain = urlparse(href).netloc
+             if domain and domain != base_domain:
+                third_party.add(domain)
+
+        return {"status": "success", "third_party_domains": list(third_party)}
     except Exception as e:
         return {"status": "error", "message": str(e)}

