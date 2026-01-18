@@ -31,47 +31,74 @@ def identify_hash_type(hash_str: str) -> Dict[str, Any]:
         return {"status": "success", "possibilities": possibilities}
     return {"status": "unknown", "message": "Unknown/Multiple Possibilities"}
 
-def base64_encode(text: str) -> str:
-    return base64.b64encode(text.encode()).decode()
-
-def base64_decode(text: str) -> str:
+def base64_encode(text: str) -> Dict[str, Any]:
     try:
-        return base64.b64decode(text).decode()
-    except:
-        return "Invalid Base64"
+        encoded = base64.b64encode(text.encode()).decode()
+        return {"status": "success", "encoded": encoded}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
-def rot13_cipher(text: str) -> str:
-    return codecs.encode(text, 'rot_13')
-
-def xor_cipher(text: str, key: str) -> str:
-    if not key: return text
-    return "".join([chr(ord(c) ^ ord(key[i % len(key)])) for i, c in enumerate(text)])
-
-def hex_encode(text: str) -> str:
-    return text.encode().hex()
-
-def hex_decode(text: str) -> str:
+def base64_decode(text: str) -> Dict[str, Any]:
     try:
-        return bytes.fromhex(text).decode()
-    except:
-        return "Invalid Hex"
+        decoded = base64.b64decode(text).decode()
+        return {"status": "success", "decoded": decoded}
+    except Exception as e:
+        return {"status": "error", "message": "Invalid Base64"}
 
-def url_encode(text: str) -> str:
+def rot13_cipher(text: str) -> Dict[str, Any]:
+    try:
+        result = codecs.encode(text, 'rot_13')
+        return {"status": "success", "ciphertext": result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def xor_cipher(text: str, key: str) -> Dict[str, Any]:
+    try:
+        if not key:
+             return {"status": "error", "message": "Key cannot be empty"}
+        result = "".join([chr(ord(c) ^ ord(key[i % len(key)])) for i, c in enumerate(text)])
+        return {"status": "success", "ciphertext": result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def hex_encode(text: str) -> Dict[str, Any]:
+    try:
+        encoded = text.encode().hex()
+        return {"status": "success", "encoded": encoded}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def hex_decode(text: str) -> Dict[str, Any]:
+    try:
+        decoded = bytes.fromhex(text).decode()
+        return {"status": "success", "decoded": decoded}
+    except Exception as e:
+        return {"status": "error", "message": "Invalid Hex"}
+
+def url_encode(text: str) -> Dict[str, Any]:
     import urllib.parse
-    return urllib.parse.quote(text)
+    try:
+        encoded = urllib.parse.quote(text)
+        return {"status": "success", "encoded": encoded}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
-def url_decode(text: str) -> str:
+def url_decode(text: str) -> Dict[str, Any]:
     import urllib.parse
-    return urllib.parse.unquote(text)
+    try:
+        decoded = urllib.parse.unquote(text)
+        return {"status": "success", "decoded": decoded}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
-def check_luhn(card_number: Union[str, int]) -> bool:
+def check_luhn(card_number: Union[str, int]) -> Dict[str, Any]:
     """Checks credit card validity using Luhn algorithm."""
     try:
-        card_number = str(card_number).strip().replace(" ", "").replace("-", "")
-        if not card_number.isdigit():
-            return False
+        card_number_str = str(card_number).strip().replace(" ", "").replace("-", "")
+        if not card_number_str.isdigit():
+             return {"status": "invalid", "message": "Contains non-numeric characters"}
 
-        digits = [int(d) for d in card_number]
+        digits = [int(d) for d in card_number_str]
         checksum = 0
         reverse_digits = digits[::-1]
 
@@ -84,6 +111,8 @@ def check_luhn(card_number: Union[str, int]) -> bool:
             else:
                 checksum += digit
 
-        return checksum % 10 == 0
-    except:
-        return False
+        is_valid = (checksum % 10 == 0)
+        status = "valid" if is_valid else "invalid"
+        return {"status": status, "is_valid": is_valid, "message": f"Card number is {status}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

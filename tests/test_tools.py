@@ -23,7 +23,9 @@ class TestTools(unittest.TestCase):
         self.assertEqual(result["status"], "success")
         self.assertEqual(result["hash"], "098f6bcd4621d373cade4e832627b4f6")
 
-        self.assertEqual(cryptography.base64_encode("hello"), "aGVsbG8=")
+        result_b64 = cryptography.base64_encode("hello")
+        self.assertEqual(result_b64["status"], "success")
+        self.assertEqual(result_b64["encoded"], "aGVsbG8=")
 
     def test_session(self):
         # Entropy of "password" is low

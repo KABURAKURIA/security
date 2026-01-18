@@ -26,46 +26,52 @@ def analyze_cookie_entropy(cookie_value: str) -> Dict[str, Any]:
         result["message"] = f"Low Entropy ({entropy:.2f}): Likely predictable or encoded"
     return result
 
-def decode_jwt_header(token: str) -> Union[Dict[str, Any], str]:
+def decode_jwt_header(token: str) -> Dict[str, Any]:
     try:
         header = token.split('.')[0]
         # Add padding if needed
         header += '=' * (-len(header) % 4)
-        return json.loads(base64.urlsafe_b64decode(header).decode())
+        decoded = json.loads(base64.urlsafe_b64decode(header).decode())
+        return {"status": "success", "header": decoded}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def decode_jwt_payload(token: str) -> Union[Dict[str, Any], str]:
+def decode_jwt_payload(token: str) -> Dict[str, Any]:
     try:
         payload = token.split('.')[1]
         payload += '=' * (-len(payload) % 4)
-        return json.loads(base64.urlsafe_b64decode(payload).decode())
+        decoded = json.loads(base64.urlsafe_b64decode(payload).decode())
+        return {"status": "success", "payload": decoded}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
 def check_jwt_alg_none(token: str) -> Dict[str, Any]:
     try:
-        header = decode_jwt_header(token)
-        if isinstance(header, dict) and header.get('alg') == 'none':
+        header_res = decode_jwt_header(token)
+        if header_res['status'] == 'error':
+             return header_res
+
+        header = header_res.get('header', {})
+        if header.get('alg') == 'none':
             return {"status": "vulnerable", "message": "Vulnerable: JWT algorithm is 'none'"}
-        if isinstance(header, str): # Error message
-             return {"status": "error", "message": header}
         return {"status": "safe", "message": f"Algorithm is {header.get('alg')}"}
     except Exception as e:
         return {"status": "error", "message": "Invalid JWT"}
 
 def check_jwt_expiration(token: str) -> Dict[str, Any]:
     try:
-        payload = decode_jwt_payload(token)
-        if isinstance(payload, dict) and 'exp' in payload:
+        payload_res = decode_jwt_payload(token)
+        if payload_res['status'] == 'error':
+             return payload_res
+
+        payload = payload_res.get('payload', {})
+        if 'exp' in payload:
             exp = payload['exp']
             import datetime
             exp_date = datetime.datetime.fromtimestamp(exp)
             if exp_date < datetime.datetime.now():
                 return {"status": "expired", "message": f"Token expired at {exp_date}"}
             return {"status": "valid", "message": f"Token valid until {exp_date}"}
-        if isinstance(payload, str):
-             return {"status": "error", "message": payload}
         return {"status": "warning", "message": "No expiration ('exp') claim found"}
     except Exception as e:
         return {"status": "error", "message": "Invalid JWT"}
