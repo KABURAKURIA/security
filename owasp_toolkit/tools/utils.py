@@ -8,104 +8,106 @@ import xml.dom.minidom
 import ipaddress
 import socket
 from fake_useragent import UserAgent
+from typing import List, Dict, Union, Any
 
-def extract_emails(text):
+def extract_emails(text: str) -> List[str]:
     return list(set(re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", text)))
 
-def extract_ipv4(text):
+def extract_ipv4(text: str) -> List[str]:
     return list(set(re.findall(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", text)))
 
-def extract_urls(text):
+def extract_urls(text: str) -> List[str]:
     return list(set(re.findall(r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+", text)))
 
-def generate_random_string(length=12):
+def generate_random_string(length: int = 12) -> str:
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
-def generate_uuid():
+def generate_uuid() -> str:
     return str(uuid.uuid4())
 
-def timestamp_to_date(ts):
+def timestamp_to_date(ts: str) -> str:
     try:
         return datetime.datetime.fromtimestamp(float(ts)).strftime('%Y-%m-%d %H:%M:%S')
-    except:
-        return "Invalid Timestamp"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
-def json_prettify(json_str):
+def json_prettify(json_str: str) -> str:
     try:
         parsed = json.loads(json_str)
         return json.dumps(parsed, indent=4)
-    except:
-        return "Invalid JSON"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
-def xml_prettify(xml_str):
+def xml_prettify(xml_str: str) -> str:
     try:
         dom = xml.dom.minidom.parseString(xml_str)
         return dom.toprettyxml()
-    except:
-        return "Invalid XML"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
-def cidr_to_ips(cidr):
+def cidr_to_ips(cidr: str) -> Union[List[str], Dict[str, str]]:
     try:
         return [str(ip) for ip in ipaddress.IPv4Network(cidr)]
-    except:
-        return "Invalid CIDR"
+    except Exception as e:
+         return {"status": "error", "message": str(e)}
 
-def is_valid_ipv4(ip):
+def is_valid_ipv4(ip: str) -> bool:
     try:
         ipaddress.IPv4Address(ip)
         return True
     except:
         return False
 
-def is_valid_ipv6(ip):
+def is_valid_ipv6(ip: str) -> bool:
     try:
         ipaddress.IPv6Address(ip)
         return True
     except:
         return False
 
-def get_host_by_name(hostname):
+def get_host_by_name(hostname: str) -> Dict[str, Any]:
     try:
-        return socket.gethostbyname(hostname)
-    except:
-        return "Resolution failed"
+        ip = socket.gethostbyname(hostname)
+        return {"status": "success", "ip": ip}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
-def get_service_name(port, proto='tcp'):
+def get_service_name(port: int, proto: str = 'tcp') -> str:
     try:
         return socket.getservbyport(int(port), proto)
     except:
         return "Unknown"
 
-def generate_random_user_agent():
+def generate_random_user_agent() -> str:
     ua = UserAgent()
     return ua.random
 
-def check_string_similarity(s1, s2):
+def check_string_similarity(s1: str, s2: str) -> float:
     from difflib import SequenceMatcher
     return SequenceMatcher(None, s1, s2).ratio()
 
-def count_words(text):
+def count_words(text: str) -> int:
     return len(text.split())
 
-def count_chars(text):
+def count_chars(text: str) -> int:
     return len(text)
 
-def reverse_string(text):
+def reverse_string(text: str) -> str:
     return text[::-1]
 
-def to_upper(text):
+def to_upper(text: str) -> str:
     return text.upper()
 
-def to_lower(text):
+def to_lower(text: str) -> str:
     return text.lower()
 
-def remove_whitespace(text):
+def remove_whitespace(text: str) -> str:
     return text.replace(" ", "")
 
-def get_current_time():
+def get_current_time() -> str:
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-def is_port_open(host, port, timeout=1):
+def is_port_open(host: str, port: int, timeout: int = 1) -> bool:
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)

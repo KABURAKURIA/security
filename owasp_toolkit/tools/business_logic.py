@@ -2,8 +2,9 @@ import hashlib
 import requests
 import re
 import time
+from typing import List, Dict, Union, Any
 
-def validate_data_integrity(data, expected_hash, algorithm='sha256'):
+def validate_data_integrity(data: str, expected_hash: str, algorithm: str = 'sha256') -> Dict[str, Any]:
     """
     Verifies if data matches the expected hash (integrity check).
     """
@@ -13,16 +14,16 @@ def validate_data_integrity(data, expected_hash, algorithm='sha256'):
         elif algorithm == 'md5':
             calc_hash = hashlib.md5(data.encode()).hexdigest()
         else:
-            return "Unsupported algorithm"
+             return {"status": "error", "message": "Unsupported algorithm"}
 
         if calc_hash == expected_hash:
-            return "Integrity verified (Matches)"
+             return {"status": "success", "message": "Integrity verified (Matches)"}
         else:
-            return f"Integrity check failed. Calculated: {calc_hash}"
+             return {"status": "failed", "message": f"Integrity check failed. Calculated: {calc_hash}", "calculated_hash": calc_hash}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_sequential_ids(url, param):
+def check_sequential_ids(url: str, param: str) -> Dict[str, Any]:
     """
     Checks if a parameter seems to be using sequential IDs, which might indicate predictable resource usage.
     """
@@ -39,30 +40,31 @@ def check_sequential_ids(url, param):
                 results.append(i)
 
         if len(results) == 3:
-            return "Sequential IDs found (1, 2, 3) - Predictable Reference Risk"
-        return "No obvious sequential IDs found"
+             return {"status": "vulnerable", "message": "Sequential IDs found (1, 2, 3) - Predictable Reference Risk"}
+        return {"status": "safe", "message": "No obvious sequential IDs found"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def analyze_workflow_bypass(steps_urls):
+def analyze_workflow_bypass(steps_urls: List[str]) -> Dict[str, Any]:
     """
     Simulates skipping steps in a workflow.
     Input: list of URLs representing steps [step1, step2, step3]
     """
     try:
         # Try accessing step 3 directly
-        if len(steps_urls) < 2: return "Need at least 2 steps"
+        if len(steps_urls) < 2:
+             return {"status": "error", "message": "Need at least 2 steps"}
 
         last_step = steps_urls[-1]
         res = requests.get(last_step, timeout=5)
 
         if res.status_code == 200:
-            return "Able to access final step directly (Potential Workflow Bypass)"
-        return f"Access to final step returned {res.status_code}"
+             return {"status": "vulnerable", "message": "Able to access final step directly (Potential Workflow Bypass)"}
+        return {"status": "safe", "message": f"Access to final step returned {res.status_code}"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_parameter_manipulation(url: str, params: dict):
+def check_parameter_manipulation(url: str, params: Dict[str, Any]) -> Dict[str, Any]:
     """
     Checks if changing parameter values (e.g. price, quantity) works.
     This is a simulation helper.
@@ -90,11 +92,13 @@ def check_parameter_manipulation(url: str, params: dict):
             else:
                 results['Price Modification'] = f"Status {res.status_code}"
 
-        return results if results else "No standard business parameters found to test"
+        if results:
+             return {"status": "completed", "results": results}
+        return {"status": "info", "message": "No standard business parameters found to test"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_timing_attacks(url, username):
+def check_timing_attacks(url: str, username: str) -> Dict[str, Any]:
     """
     Checks if login response time differs significantly for valid vs invalid user (User Enumeration).
     """
@@ -109,8 +113,8 @@ def check_timing_attacks(url, username):
         requests.post(url, data={'username': username, 'password': 'password'}, timeout=5)
         target_time = time.time() - start
 
-        if target_time > (invalid_time * 2):
-            return f"Significant timing difference detected (Invalid: {invalid_time:.2f}s, Target: {target_time:.2f}s)"
-        return "No significant timing difference"
+        if target_time > (invalid_time * 2) and target_time > 0.5: # 0.5s threshhold to avoid noise
+             return {"status": "vulnerable", "message": f"Significant timing difference detected (Invalid: {invalid_time:.2f}s, Target: {target_time:.2f}s)"}
+        return {"status": "safe", "message": "No significant timing difference"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}

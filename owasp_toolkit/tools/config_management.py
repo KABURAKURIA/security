@@ -1,49 +1,95 @@
 import requests
+from typing import List, Dict, Union, Any
 
-def get_headers(url):
+def get_headers(url: str) -> Dict[str, Any]:
     try:
         response = requests.head(url, timeout=5)
-        return response.headers
-    except:
-        return {}
+        return {"status": "success", "headers": dict(response.headers)}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
-def check_csp(url):
-    headers = get_headers(url)
-    return headers.get('Content-Security-Policy', 'Missing')
+def check_csp(url: str) -> Dict[str, Any]:
+    headers_res = get_headers(url)
+    if headers_res['status'] == 'error': return headers_res
 
-def check_hsts(url):
-    headers = get_headers(url)
-    return headers.get('Strict-Transport-Security', 'Missing')
+    val = headers_res['headers'].get('Content-Security-Policy')
+    if val:
+        return {"status": "found", "value": val}
+    return {"status": "missing", "message": "Content-Security-Policy header is missing"}
 
-def check_x_frame_options(url):
-    headers = get_headers(url)
-    return headers.get('X-Frame-Options', 'Missing')
+def check_hsts(url: str) -> Dict[str, Any]:
+    headers_res = get_headers(url)
+    if headers_res['status'] == 'error': return headers_res
 
-def check_x_content_type_options(url):
-    headers = get_headers(url)
-    return headers.get('X-Content-Type-Options', 'Missing')
+    val = headers_res['headers'].get('Strict-Transport-Security')
+    if val:
+        return {"status": "found", "value": val}
+    return {"status": "missing", "message": "Strict-Transport-Security header is missing"}
 
-def check_cors(url):
-    headers = get_headers(url)
-    return headers.get('Access-Control-Allow-Origin', 'Not explicitly set in headers')
+def check_x_frame_options(url: str) -> Dict[str, Any]:
+    headers_res = get_headers(url)
+    if headers_res['status'] == 'error': return headers_res
 
-def check_server_signature(url):
-    headers = get_headers(url)
-    return headers.get('Server', 'Not disclosed')
+    val = headers_res['headers'].get('X-Frame-Options')
+    if val:
+        return {"status": "found", "value": val}
+    return {"status": "missing", "message": "X-Frame-Options header is missing"}
 
-def check_x_powered_by(url):
-    headers = get_headers(url)
-    return headers.get('X-Powered-By', 'Not disclosed')
+def check_x_content_type_options(url: str) -> Dict[str, Any]:
+    headers_res = get_headers(url)
+    if headers_res['status'] == 'error': return headers_res
 
-def check_referrer_policy(url):
-    headers = get_headers(url)
-    return headers.get('Referrer-Policy', 'Missing')
+    val = headers_res['headers'].get('X-Content-Type-Options')
+    if val:
+        return {"status": "found", "value": val}
+    return {"status": "missing", "message": "X-Content-Type-Options header is missing"}
 
-def check_permissions_policy(url):
-    headers = get_headers(url)
-    return headers.get('Permissions-Policy', 'Missing')
+def check_cors(url: str) -> Dict[str, Any]:
+    headers_res = get_headers(url)
+    if headers_res['status'] == 'error': return headers_res
 
-def check_cookie_flags(url):
+    val = headers_res['headers'].get('Access-Control-Allow-Origin')
+    if val:
+        return {"status": "found", "value": val}
+    return {"status": "info", "message": "Not explicitly set in headers"}
+
+def check_server_signature(url: str) -> Dict[str, Any]:
+    headers_res = get_headers(url)
+    if headers_res['status'] == 'error': return headers_res
+
+    val = headers_res['headers'].get('Server')
+    if val:
+        return {"status": "found", "value": val}
+    return {"status": "info", "message": "Not disclosed"}
+
+def check_x_powered_by(url: str) -> Dict[str, Any]:
+    headers_res = get_headers(url)
+    if headers_res['status'] == 'error': return headers_res
+
+    val = headers_res['headers'].get('X-Powered-By')
+    if val:
+        return {"status": "found", "value": val}
+    return {"status": "info", "message": "Not disclosed"}
+
+def check_referrer_policy(url: str) -> Dict[str, Any]:
+    headers_res = get_headers(url)
+    if headers_res['status'] == 'error': return headers_res
+
+    val = headers_res['headers'].get('Referrer-Policy')
+    if val:
+        return {"status": "found", "value": val}
+    return {"status": "missing", "message": "Referrer-Policy header is missing"}
+
+def check_permissions_policy(url: str) -> Dict[str, Any]:
+    headers_res = get_headers(url)
+    if headers_res['status'] == 'error': return headers_res
+
+    val = headers_res['headers'].get('Permissions-Policy')
+    if val:
+        return {"status": "found", "value": val}
+    return {"status": "missing", "message": "Permissions-Policy header is missing"}
+
+def check_cookie_flags(url: str) -> Dict[str, Any]:
     try:
         response = requests.get(url, timeout=5)
         cookies = response.cookies
@@ -52,59 +98,59 @@ def check_cookie_flags(url):
             flags = []
             if cookie.secure:
                 flags.append("Secure")
-            if cookie.has_nonstandard_attr('HttpOnly') or cookie.get_nonstandard_attr('HttpOnly'): # Request cookies handling varies
-                 # Requests cookie jar objects have internal flags, but accessing them directly is tricky.
-                 # Let's trust the _rest structure or just inspect headers.
-                 pass
-
-            # Better to check Set-Cookie header directly for HttpOnly
+            # HttpOnly is hard to detect from client side requests library unless we parse Set-Cookie headers manually
             results.append(f"{cookie.name}: Secure={cookie.secure}")
 
         # Parse Set-Cookie header manually for HttpOnly
         if 'Set-Cookie' in response.headers:
              results.append(f"Raw Set-Cookie: {response.headers['Set-Cookie']}")
 
-        return results if results else "No cookies found"
+        if results:
+            return {"status": "success", "cookies": results}
+        return {"status": "info", "message": "No cookies found"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_options_method(url):
+def check_options_method(url: str) -> Dict[str, Any]:
     try:
         response = requests.options(url, timeout=5)
-        return response.headers.get('Allow', 'No Allow header returned')
+        allow = response.headers.get('Allow')
+        if allow:
+            return {"status": "success", "allow_methods": allow}
+        return {"status": "info", "message": "No Allow header returned"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_trace_method(url):
+def check_trace_method(url: str) -> Dict[str, Any]:
     try:
         response = requests.request('TRACE', url, timeout=5)
         if response.status_code != 405 and response.status_code != 501:
-             return f"TRACE might be enabled (Status: {response.status_code})"
-        return "TRACE likely disabled"
+             return {"status": "vulnerable", "message": f"TRACE might be enabled (Status: {response.status_code})"}
+        return {"status": "safe", "message": "TRACE likely disabled"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_crossdomain_xml(url):
+def check_crossdomain_xml(url: str) -> Dict[str, Any]:
     try:
         if not url.endswith('/'): url += '/'
         res = requests.get(url + "crossdomain.xml", timeout=5)
         if res.status_code == 200:
-            return "Found crossdomain.xml"
-        return "Not found"
-    except:
-        return "Error"
+            return {"status": "found", "message": "Found crossdomain.xml"}
+        return {"status": "not_found", "message": "Not found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
-def check_clientaccess_policy(url):
+def check_clientaccess_policy(url: str) -> Dict[str, Any]:
     try:
         if not url.endswith('/'): url += '/'
         res = requests.get(url + "clientaccesspolicy.xml", timeout=5)
         if res.status_code == 200:
-            return "Found clientaccesspolicy.xml"
-        return "Not found"
-    except:
-        return "Error"
+            return {"status": "found", "message": "Found clientaccesspolicy.xml"}
+        return {"status": "not_found", "message": "Not found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
-def check_sensitive_files(url):
+def check_sensitive_files(url: str) -> Dict[str, Any]:
     files = ['.env', '.git/HEAD', 'backup.zip', 'web.config.bak']
     found = []
     if not url.endswith('/'): url += '/'
@@ -115,4 +161,6 @@ def check_sensitive_files(url):
                 found.append(f)
         except:
             pass
-    return found if found else "None found"
+    if found:
+        return {"status": "vulnerable", "files_found": found}
+    return {"status": "safe", "message": "None found"}

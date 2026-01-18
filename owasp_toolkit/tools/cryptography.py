@@ -1,63 +1,70 @@
 import hashlib
 import base64
 import codecs
+from typing import List, Dict, Union, Any
 
-def calculate_hash(text, algorithm='sha256'):
+def calculate_hash(text: str, algorithm: str = 'sha256') -> Dict[str, Any]:
     try:
         if algorithm == 'md5':
-            return hashlib.md5(text.encode()).hexdigest()
+            h = hashlib.md5(text.encode()).hexdigest()
         elif algorithm == 'sha1':
-            return hashlib.sha1(text.encode()).hexdigest()
+            h = hashlib.sha1(text.encode()).hexdigest()
         elif algorithm == 'sha256':
-            return hashlib.sha256(text.encode()).hexdigest()
+            h = hashlib.sha256(text.encode()).hexdigest()
         elif algorithm == 'sha512':
-            return hashlib.sha512(text.encode()).hexdigest()
+            h = hashlib.sha512(text.encode()).hexdigest()
         else:
-            return "Unknown algorithm"
+            return {"status": "error", "message": "Unknown algorithm"}
+        return {"status": "success", "hash": h}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def identify_hash_type(hash_str):
+def identify_hash_type(hash_str: str) -> Dict[str, Any]:
     length = len(hash_str)
-    if length == 32: return "MD5"
-    if length == 40: return "SHA1"
-    if length == 64: return "SHA-256"
-    if length == 128: return "SHA-512"
-    return "Unknown/Multiple Possibilities"
+    possibilities = []
+    if length == 32: possibilities.append("MD5")
+    if length == 40: possibilities.append("SHA1")
+    if length == 64: possibilities.append("SHA-256")
+    if length == 128: possibilities.append("SHA-512")
 
-def base64_encode(text):
+    if possibilities:
+        return {"status": "success", "possibilities": possibilities}
+    return {"status": "unknown", "message": "Unknown/Multiple Possibilities"}
+
+def base64_encode(text: str) -> str:
     return base64.b64encode(text.encode()).decode()
 
-def base64_decode(text):
+def base64_decode(text: str) -> str:
     try:
         return base64.b64decode(text).decode()
     except:
         return "Invalid Base64"
 
-def rot13_cipher(text):
+def rot13_cipher(text: str) -> str:
     return codecs.encode(text, 'rot_13')
 
-def xor_cipher(text, key):
+def xor_cipher(text: str, key: str) -> str:
+    if not key: return text
     return "".join([chr(ord(c) ^ ord(key[i % len(key)])) for i, c in enumerate(text)])
 
-def hex_encode(text):
+def hex_encode(text: str) -> str:
     return text.encode().hex()
 
-def hex_decode(text):
+def hex_decode(text: str) -> str:
     try:
         return bytes.fromhex(text).decode()
     except:
         return "Invalid Hex"
 
-def url_encode(text):
+def url_encode(text: str) -> str:
     import urllib.parse
     return urllib.parse.quote(text)
 
-def url_decode(text):
+def url_decode(text: str) -> str:
     import urllib.parse
     return urllib.parse.unquote(text)
 
-def check_luhn(card_number):
+def check_luhn(card_number: Union[str, int]) -> bool:
     """Checks credit card validity using Luhn algorithm."""
     try:
         card_number = str(card_number).strip().replace(" ", "").replace("-", "")

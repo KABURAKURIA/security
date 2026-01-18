@@ -18,7 +18,11 @@ class TestTools(unittest.TestCase):
         self.assertEqual(utils.count_words("hello world"), 2)
 
     def test_cryptography(self):
-        self.assertEqual(cryptography.calculate_hash("test", "md5"), "098f6bcd4621d373cade4e832627b4f6")
+        # Updated to expect dict
+        result = cryptography.calculate_hash("test", "md5")
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(result["hash"], "098f6bcd4621d373cade4e832627b4f6")
+
         self.assertEqual(cryptography.base64_encode("hello"), "aGVsbG8=")
 
     def test_session(self):
@@ -31,16 +35,28 @@ class TestTools(unittest.TestCase):
 
     def test_business_logic(self):
         # Integrity check
-        self.assertEqual(business_logic.validate_data_integrity("test", "098f6bcd4621d373cade4e832627b4f6", "md5"), "Integrity verified (Matches)")
+        result = business_logic.validate_data_integrity("test", "098f6bcd4621d373cade4e832627b4f6", "md5")
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(result["message"], "Integrity verified (Matches)")
 
     def test_file_uploads(self):
-        self.assertEqual(file_uploads.sanitize_filename_check("safe_file.txt"), "Safe filename")
-        self.assertEqual(file_uploads.sanitize_filename_check("unsafe/file.txt"), "Unsafe characters detected")
+        result_safe = file_uploads.sanitize_filename_check("safe_file.txt")
+        self.assertEqual(result_safe["status"], "safe")
+        self.assertEqual(result_safe["message"], "Safe filename")
+
+        result_unsafe = file_uploads.sanitize_filename_check("unsafe/file.txt")
+        self.assertEqual(result_unsafe["status"], "unsafe")
+        self.assertEqual(result_unsafe["message"], "Unsafe characters detected")
 
     def test_card_payment(self):
         # Luhn check
-        self.assertEqual(card_payment.validate_luhn_algorithm("79927398713"), "Valid Credit Card Number")
-        self.assertEqual(card_payment.validate_luhn_algorithm("79927398710"), "Invalid Credit Card Number")
+        result_valid = card_payment.validate_luhn_algorithm("79927398713")
+        self.assertEqual(result_valid["status"], "valid")
+        self.assertEqual(result_valid["message"], "Valid Credit Card Number")
+
+        result_invalid = card_payment.validate_luhn_algorithm("79927398710")
+        self.assertEqual(result_invalid["status"], "invalid")
+        self.assertEqual(result_invalid["message"], "Invalid Credit Card Number")
 
     def test_html5(self):
         # Just check import and existence basically, mock network calls?
