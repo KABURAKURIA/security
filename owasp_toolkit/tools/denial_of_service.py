@@ -1,9 +1,9 @@
 import requests
 import time
 import socket
-import threading
+from typing import List, Dict, Union, Any
 
-def check_anti_automation(url: str, form_data: dict):
+def check_anti_automation(url: str, form_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Checks if multiple rapid submissions are allowed (lack of rate limiting/CAPTCHA).
     """
@@ -15,15 +15,15 @@ def check_anti_automation(url: str, form_data: dict):
             responses.append(res.status_code)
 
         if all(code == 200 for code in responses):
-            return "Multiple requests accepted (Potential lack of Rate Limiting/Anti-Automation)"
+             return {"status": "vulnerable", "message": "Multiple requests accepted (Potential lack of Rate Limiting/Anti-Automation)", "codes": responses}
         elif 429 in responses:
-            return "Rate limiting detected (Status 429)"
+             return {"status": "safe", "message": "Rate limiting detected (Status 429)"}
         else:
-            return f"Responses: {responses}"
+             return {"status": "mixed", "codes": responses}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_slowloris_susceptibility(host, port=80):
+def check_slowloris_susceptibility(host: str, port: int = 80) -> Dict[str, Any]:
     """
     Basic check to see if the server keeps connections open for partial requests.
     This is a non-destructive check that just tests if a partial request is held.
@@ -42,13 +42,13 @@ def check_slowloris_susceptibility(host, port=80):
             # If we can still send, it might be susceptible, but this is very basic.
             s.send("X-b: c\r\n".encode("utf-8"))
             s.close()
-            return "Server kept connection open for partial request (Potential Slowloris susceptibility)"
+            return {"status": "vulnerable", "message": "Server kept connection open for partial request (Potential Slowloris susceptibility)"}
         except BrokenPipeError:
-            return "Server closed connection (Likely not susceptible)"
+            return {"status": "safe", "message": "Server closed connection (Likely not susceptible)"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_sql_wildcard_dos(url, param):
+def check_sql_wildcard_dos(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for SQL Wildcard Denial of Service (e.g. searching for '%').
     """
@@ -70,12 +70,12 @@ def check_sql_wildcard_dos(url, param):
         dos_time = time.time() - start
 
         if dos_time > (base_time * 5) and dos_time > 2:
-             return f"Response time significantly increased with wildcard (Baseline: {base_time:.2f}s, Wildcard: {dos_time:.2f}s)"
-        return "No significant delay detected with wildcard"
+             return {"status": "vulnerable", "message": f"Response time significantly increased with wildcard (Baseline: {base_time:.2f}s, Wildcard: {dos_time:.2f}s)"}
+        return {"status": "safe", "message": "No significant delay detected with wildcard"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_large_payload_handling(url):
+def check_large_payload_handling(url: str) -> Dict[str, Any]:
     """
     Checks how the server handles large request bodies.
     """
@@ -83,15 +83,15 @@ def check_large_payload_handling(url):
         large_data = "A" * 100000 # 100KB
         res = requests.post(url, data={"data": large_data}, timeout=10)
         if res.status_code == 413:
-            return "Properly handled (413 Payload Too Large)"
+            return {"status": "safe", "message": "Properly handled (413 Payload Too Large)"}
         elif res.status_code == 200:
-            return "Accepted large payload (Status 200)"
+            return {"status": "warning", "message": "Accepted large payload (Status 200)"}
         else:
-            return f"Responded with status {res.status_code}"
+            return {"status": "info", "message": f"Responded with status {res.status_code}"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_xml_bomb_protection(url):
+def check_xml_bomb_protection(url: str) -> Dict[str, Any]:
     """
     Checks if XML parser is susceptible to Billion Laughs attack (Basic Check).
     """
@@ -109,7 +109,7 @@ def check_xml_bomb_protection(url):
         headers = {'Content-Type': 'application/xml'}
         res = requests.post(url, data=payload, headers=headers, timeout=5)
         if res.status_code == 200:
-             return "Server accepted XML entity expansion (Potential risk)"
-        return f"Server response: {res.status_code}"
+             return {"status": "vulnerable", "message": "Server accepted XML entity expansion (Potential risk)"}
+        return {"status": "safe", "message": f"Server response: {res.status_code}"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}

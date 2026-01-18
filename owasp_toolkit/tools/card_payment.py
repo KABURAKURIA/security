@@ -1,15 +1,16 @@
 import requests
 import re
+from typing import List, Dict, Union, Any
 
-def check_payment_gateway_https(url):
+def check_payment_gateway_https(url: str) -> Dict[str, Any]:
     """
     Ensures payment pages are served over HTTPS.
     """
     if not url.startswith("https://"):
-        return "CRITICAL: Payment page not using HTTPS!"
-    return "Using HTTPS (Good)"
+        return {"status": "vulnerable", "message": "CRITICAL: Payment page not using HTTPS!"}
+    return {"status": "safe", "message": "Using HTTPS (Good)"}
 
-def check_default_payment_passwords(url):
+def check_default_payment_passwords(url: str) -> Dict[str, Any]:
     """
     Checks for common default credentials for payment gateways (simulated).
     """
@@ -29,36 +30,37 @@ def check_default_payment_passwords(url):
             if ind in text:
                 found.append(ind)
 
-        return found if found else "No obvious default payment configs found"
+        if found:
+            return {"status": "vulnerable", "found_indicators": found}
+        return {"status": "safe", "message": "No obvious default payment configs found"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_cvv_storage(url):
+def check_cvv_storage(url: str) -> Dict[str, Any]:
     """
     Heuristic check if CVV/CVC is being stored or passed in URL (Violation of PCI-DSS).
     """
     try:
         if "cvv" in url.lower() or "cvc" in url.lower():
-            return "Potential CVV found in URL parameters (High Risk)"
+             return {"status": "vulnerable", "message": "Potential CVV found in URL parameters (High Risk)"}
 
         res = requests.get(url, timeout=5)
         # Check for hidden fields storing CVV
         if re.search(r'<input[^>]*name=["\']?cvv["\']?[^>]*value=["\']?\d{3,4}["\']?', res.text, re.IGNORECASE):
-             return "Potential pre-filled CVV field found (High Risk)"
+             return {"status": "vulnerable", "message": "Potential pre-filled CVV field found (High Risk)"}
 
-        return "No obvious CVV storage/transmission indicators found"
+        return {"status": "safe", "message": "No obvious CVV storage/transmission indicators found"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def validate_luhn_algorithm(card_number):
+def validate_luhn_algorithm(card_number: Union[str, int]) -> Dict[str, Any]:
     """
     Validates a credit card number using the Luhn algorithm.
     """
-    # Reuse or re-implement. It's already in crypto, but useful here for context.
     try:
         card_number = str(card_number).strip().replace(" ", "").replace("-", "")
         if not card_number.isdigit():
-            return "Invalid input"
+             return {"status": "error", "message": "Invalid input"}
 
         digits = [int(d) for d in card_number]
         checksum = 0
@@ -73,11 +75,13 @@ def validate_luhn_algorithm(card_number):
             else:
                 checksum += digit
 
-        return "Valid Credit Card Number" if checksum % 10 == 0 else "Invalid Credit Card Number"
-    except:
-        return "Error"
+        if checksum % 10 == 0:
+             return {"status": "valid", "message": "Valid Credit Card Number"}
+        return {"status": "invalid", "message": "Invalid Credit Card Number"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
-def check_autocomplete_on_payment_fields(url):
+def check_autocomplete_on_payment_fields(url: str) -> Dict[str, Any]:
     """
     Checks if sensitive payment fields have autocomplete disabled.
     """
@@ -96,6 +100,8 @@ def check_autocomplete_on_payment_fields(url):
                 if auto != 'off':
                     issues.append(f"Field '{name}' has autocomplete='{auto}' (Should be 'off')")
 
-        return issues if issues else "Payment fields seem to have autocomplete off (or not found)"
+        if issues:
+             return {"status": "vulnerable", "issues": issues}
+        return {"status": "safe", "message": "Payment fields seem to have autocomplete off (or not found)"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}

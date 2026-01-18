@@ -1,8 +1,9 @@
 import requests
 import itertools
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+from typing import List, Dict, Union, Any
 
-def check_path_traversal(url, param):
+def check_path_traversal(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for Path Traversal vulnerabilities on a specific parameter.
     """
@@ -30,13 +31,15 @@ def check_path_traversal(url, param):
 
             res = requests.get(target, timeout=5)
             if "root:x:0:0" in res.text or "[extensions]" in res.text:
-                results.append(f"Vulnerability found with payload: {payload}")
+                results.append(payload)
 
-        return results if results else "No path traversal detected with standard payloads"
+        if results:
+             return {"status": "vulnerable", "payloads_succeeded": results}
+        return {"status": "safe", "message": "No path traversal detected with standard payloads"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_admin_access(url):
+def check_admin_access(url: str) -> Dict[str, Any]:
     """
     Checks if administrative endpoints are accessible without authentication (Vertical Access Control).
     """
@@ -64,9 +67,11 @@ def check_admin_access(url):
         except:
             pass
 
-    return accessible if accessible else "No exposed admin endpoints found"
+    if accessible:
+        return {"status": "warning", "accessible_paths": accessible}
+    return {"status": "safe", "message": "No exposed admin endpoints found"}
 
-def check_idor_patterns(url):
+def check_idor_patterns(url: str) -> Dict[str, Any]:
     """
     Checks for potential IDOR (Insecure Direct Object Reference) candidates in URL structure.
     """
@@ -78,13 +83,15 @@ def check_idor_patterns(url):
             idor_params = []
             for k, v in params:
                 if v.isdigit():
-                    idor_params.append(f"Parameter '{k}' has numeric value '{v}' - Potential IDOR")
-            return idor_params if idor_params else "No obvious numeric ID parameters found"
-        return "No parameters to analyze"
+                    idor_params.append(f"Parameter '{k}' has numeric value '{v}'")
+            if idor_params:
+                return {"status": "potential_idor", "candidates": idor_params}
+            return {"status": "safe", "message": "No obvious numeric ID parameters found"}
+        return {"status": "info", "message": "No parameters to analyze"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_missing_authorization_headers(url):
+def check_missing_authorization_headers(url: str) -> Dict[str, Any]:
     """
     Checks if API endpoints return data even without Authorization headers.
     """
@@ -92,17 +99,17 @@ def check_missing_authorization_headers(url):
         # Request without any auth headers
         res = requests.get(url, timeout=5)
         if res.status_code == 200:
-            return "Endpoint accessible without Authorization header (Check if public or missing auth)"
+            return {"status": "vulnerable", "message": "Endpoint accessible without Authorization header (Check if public or missing auth)"}
         elif res.status_code == 401:
-            return "Properly returned 401 Unauthorized"
+            return {"status": "safe", "message": "Properly returned 401 Unauthorized"}
         elif res.status_code == 403:
-            return "Properly returned 403 Forbidden"
+            return {"status": "safe", "message": "Properly returned 403 Forbidden"}
         else:
-            return f"Status Code: {res.status_code}"
+            return {"status": "info", "message": f"Status Code: {res.status_code}"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def analyze_role_definitions(url):
+def analyze_role_definitions(url: str) -> Dict[str, Any]:
     """
     Heuristic check for role definitions in client-side code.
     """
@@ -113,6 +120,8 @@ def analyze_role_definitions(url):
         for role in roles:
             if role in res.text.lower():
                 found.append(role)
-        return f"Found role mentions: {', '.join(found)}" if found else "No role mentions found"
+        if found:
+            return {"status": "found", "roles": found}
+        return {"status": "not_found", "message": "No role mentions found"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}

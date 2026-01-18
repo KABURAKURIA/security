@@ -1,7 +1,8 @@
 import requests
 import os
+from typing import List, Dict, Union, Any
 
-def check_file_upload_size_limit(url, field_name):
+def check_file_upload_size_limit(url: str, field_name: str) -> Dict[str, Any]:
     """
     Tests if the server enforces file size limits.
     """
@@ -13,15 +14,15 @@ def check_file_upload_size_limit(url, field_name):
         res = requests.post(url, files=files, timeout=10)
 
         if res.status_code == 413:
-            return "Properly rejected large file (413 Payload Too Large)"
+             return {"status": "safe", "message": "Properly rejected large file (413 Payload Too Large)"}
         elif res.status_code == 200:
-            return "Accepted 10MB file (Check if limit exists)"
+             return {"status": "warning", "message": "Accepted 10MB file (Check if limit exists)"}
         else:
-            return f"Server responded with {res.status_code}"
+             return {"status": "info", "message": f"Server responded with {res.status_code}"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_malicious_file_extensions(url, field_name):
+def check_malicious_file_extensions(url: str, field_name: str) -> Dict[str, Any]:
     """
     Tests if the server accepts dangerous file extensions.
     """
@@ -43,9 +44,9 @@ def check_malicious_file_extensions(url, field_name):
         except:
             results[ext] = "Error"
 
-    return results
+    return {"status": "completed", "results": results}
 
-def check_upload_accessibility(url, upload_dir="uploads/"):
+def check_upload_accessibility(url: str, upload_dir: str = "uploads/") -> Dict[str, Any]:
     """
     Checks if uploaded files are directly accessible in a common directory.
     """
@@ -55,15 +56,15 @@ def check_upload_accessibility(url, upload_dir="uploads/"):
         res = requests.head(target, timeout=5)
 
         if res.status_code == 200:
-            return f"Found file at {target} - Directory listing or direct access might be enabled"
+             return {"status": "vulnerable", "message": f"Found file at {target} - Directory listing or direct access might be enabled"}
         elif res.status_code == 403:
-            return "Access Forbidden (Good)"
+             return {"status": "safe", "message": "Access Forbidden (Good)"}
         else:
-            return "File not found or protected"
+             return {"status": "info", "message": "File not found or protected"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def check_svg_xss(url, field_name):
+def check_svg_xss(url: str, field_name: str) -> Dict[str, Any]:
     """
     Tests for SVG XSS upload.
     """
@@ -74,17 +75,17 @@ def check_svg_xss(url, field_name):
 
         if res.status_code == 200:
             if "alert(1)" in res.text: # If it reflects the content back
-                return "SVG accepted and content reflected (High Risk of Stored XSS)"
-            return "SVG accepted (Check if it's served as image/svg+xml)"
-        return f"Rejected with status {res.status_code}"
+                return {"status": "vulnerable", "message": "SVG accepted and content reflected (High Risk of Stored XSS)"}
+            return {"status": "warning", "message": "SVG accepted (Check if it's served as image/svg+xml)"}
+        return {"status": "safe", "message": f"Rejected with status {res.status_code}"}
     except Exception as e:
-        return str(e)
+        return {"status": "error", "message": str(e)}
 
-def sanitize_filename_check(filename):
+def sanitize_filename_check(filename: str) -> Dict[str, Any]:
     """
     Helper to check if a filename is safe (alphanumeric).
     """
     import re
     if re.match(r'^[\w\-. ]+$', filename):
-        return "Safe filename"
-    return "Unsafe characters detected"
+        return {"status": "safe", "message": "Safe filename"}
+    return {"status": "unsafe", "message": "Unsafe characters detected"}

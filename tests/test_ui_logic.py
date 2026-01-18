@@ -10,7 +10,10 @@ class TestUILogic(unittest.TestCase):
         type_hints = typing.get_type_hints(func)
 
         # Verify type hint exists
-        self.assertEqual(type_hints['params'], dict)
+        hint = type_hints['params']
+        # Check if it is a dict or a typed dict
+        origin = typing.get_origin(hint)
+        self.assertTrue(origin is dict or hint is dict)
 
         # Simulate UI Input
         ui_input_json = '{"price": "100", "quantity": "50"}'
@@ -26,7 +29,9 @@ class TestUILogic(unittest.TestCase):
         func = denial_of_service.check_anti_automation
         type_hints = typing.get_type_hints(func)
 
-        self.assertEqual(type_hints['form_data'], dict)
+        hint = type_hints['form_data']
+        origin = typing.get_origin(hint)
+        self.assertTrue(origin is dict or hint is dict)
 
         ui_input_json = '{"user": "admin", "pass": "1234"}'
         parsed = json.loads(ui_input_json)
@@ -36,7 +41,7 @@ class TestUILogic(unittest.TestCase):
         # Ensure we didn't break normal params
         func = business_logic.check_timing_attacks
         type_hints = typing.get_type_hints(func)
-        # username is not typed in the file yet (defaults to implicit Any/str), so likely not in type_hints or just not dict
+        # username is typed as str now
         self.assertNotEqual(type_hints.get('username'), dict)
 
 if __name__ == '__main__':
