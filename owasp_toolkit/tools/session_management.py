@@ -158,3 +158,31 @@ def check_session_fixation(url: str) -> Dict[str, Any]:
         return {"status": "safe", "message": "Server did not reflect the provided Session ID in Set-Cookie"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def check_clickjacking(url: str) -> Dict[str, Any]:
+    """
+    Checks for Clickjacking protection headers (X-Frame-Options or CSP frame-ancestors).
+    """
+    try:
+        res = requests.head(url, timeout=5)
+        headers = res.headers
+
+        x_frame = headers.get('X-Frame-Options', '')
+        csp = headers.get('Content-Security-Policy', '')
+
+        protected = False
+        message = []
+
+        if x_frame:
+            protected = True
+            message.append(f"X-Frame-Options: {x_frame}")
+
+        if 'frame-ancestors' in csp:
+            protected = True
+            message.append("CSP frame-ancestors present")
+
+        if protected:
+             return {"status": "safe", "message": "Clickjacking protection found", "details": message}
+        return {"status": "vulnerable", "message": "Missing X-Frame-Options and CSP frame-ancestors"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
