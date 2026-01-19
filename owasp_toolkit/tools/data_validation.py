@@ -276,3 +276,24 @@ def test_ssi_injection(url: str, param: str) -> Dict[str, Any]:
         return {"status": "info", "message": "Manual verification required for SSI execution"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def check_http_splitting(url: str, param: str) -> Dict[str, Any]:
+    """
+    Checks for HTTP Response Splitting (CRLF Injection).
+    """
+    try:
+        # Payload injects a header
+        payload = "%0d%0aX-Injected-Header: test"
+        if '?' in url:
+            target = f"{url}&{param}={payload}"
+        else:
+            target = f"{url}?{param}={payload}"
+
+        res = requests.get(target, timeout=5)
+
+        # Check if header appears in response headers
+        if 'X-Injected-Header' in res.headers:
+             return {"status": "vulnerable", "message": "CRLF Injection successful: Header injected"}
+        return {"status": "safe", "message": "Header not injected"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

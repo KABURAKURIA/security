@@ -237,3 +237,23 @@ def check_cross_site_tracing(url: str) -> Dict[str, Any]:
         return {"status": "safe", "message": "TRACE not reflecting headers or disabled"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def check_test_data(url: str) -> Dict[str, Any]:
+    """
+    Checks for common test data artifacts left in production.
+    """
+    artifacts = ["test", "demo", "sample", "example", "foo", "bar"]
+    found = []
+    try:
+        res = requests.get(url, timeout=5)
+        text = res.text.lower()
+
+        for art in artifacts:
+            if art in text:
+                found.append(art)
+
+        if found:
+             return {"status": "info", "message": "Potential test data found", "matches": found}
+        return {"status": "safe", "message": "No common test artifacts found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

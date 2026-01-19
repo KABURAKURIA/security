@@ -174,3 +174,78 @@ def generate_strong_password(length: int = 16) -> Dict[str, Any]:
     chars = string.ascii_letters + string.digits + "!@#$%^&*()"
     password = "".join(random.choice(chars) for _ in range(length))
     return {"status": "success", "password": password, "message": f"Generated password of length {length}"}
+
+def check_account_lockout(url: str, username: str, password_field: str = 'password', username_field: str = 'username') -> Dict[str, Any]:
+    """
+    Checks for account lockout mechanism by sending multiple failed login attempts.
+    Note: This is a simulation and may lock out the actual account if valid.
+    """
+    try:
+        # Assuming we need to find a login form and post to it
+        # This is a bit complex for a generic tool, so we will look for a lockout message
+        # or response code change after N attempts.
+
+        results = []
+        for i in range(5):
+            data = {
+                username_field: username,
+                password_field: f'wrongpass{i}'
+            }
+            res = requests.post(url, data=data, timeout=5)
+
+            # Check for specific keywords
+            if "lock" in res.text.lower() or "too many attempts" in res.text.lower() or res.status_code == 429:
+                return {"status": "detected", "message": f"Lockout/Rate limit detected after {i+1} attempts", "attempts": i+1}
+
+            results.append(res.status_code)
+
+        return {"status": "not_detected", "message": "No obvious lockout message detected after 5 attempts", "codes": results}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_bruteforce_protection(url: str) -> Dict[str, Any]:
+    """
+    Checks if the login page implements rate limiting or CAPTCHA to prevent bruteforce.
+    """
+    try:
+        res = requests.get(url, timeout=5)
+        soup = BeautifulSoup(res.text, 'html.parser')
+
+        protections = []
+
+        # Check for CAPTCHA
+        text = res.text.lower()
+        if 'captcha' in text or 'recaptcha' in text:
+            protections.append("CAPTCHA detected")
+
+        # Check for CSRF token (often mitigates automated attacks slightly)
+        if soup.find('input', {'name': 'csrf_token'}) or soup.find('input', {'name': '_token'}):
+            protections.append("CSRF Token found (helps vs automation)")
+
+        if protections:
+             return {"status": "protected", "protections": protections}
+        return {"status": "warning", "message": "No obvious bruteforce protections (CAPTCHA) found on GET"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_cache_management(url: str) -> Dict[str, Any]:
+    """
+    Checks if sensitive pages have appropriate cache control headers.
+    """
+    try:
+        res = requests.get(url, timeout=5)
+        headers = res.headers
+
+        cache_control = headers.get('Cache-Control', '')
+
+        issues = []
+        if 'no-store' not in cache_control.lower():
+            issues.append("Missing 'no-store' in Cache-Control")
+        if 'no-cache' not in cache_control.lower():
+            issues.append("Missing 'no-cache' in Cache-Control")
+
+        if issues:
+             return {"status": "warning", "issues": issues, "current_header": cache_control}
+        return {"status": "safe", "message": "Cache-Control seems robust"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
