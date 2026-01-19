@@ -167,10 +167,10 @@ def check_logout_functionality(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def generate_strong_password(length: int = 16) -> str:
+def generate_strong_password(length: int = 16) -> Dict[str, Any]:
     """
     Generates a strong random password.
-    Returns the string directly as it's a generator utility.
     """
     chars = string.ascii_letters + string.digits + "!@#$%^&*()"
-    return "".join(random.choice(chars) for _ in range(length))
+    password = "".join(random.choice(chars) for _ in range(length))
+    return {"status": "success", "password": password, "message": f"Generated password of length {length}"}
