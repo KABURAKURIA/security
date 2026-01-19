@@ -118,3 +118,83 @@ def check_timing_attacks(url: str, username: str) -> Dict[str, Any]:
         return {"status": "safe", "message": "No significant timing difference"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def test_segregation_of_duties(admin_url: str, user_cookie: Dict[str, str]) -> Dict[str, Any]:
+    """
+    Tests if a low privilege user can access an admin endpoint.
+    """
+    try:
+        res = requests.get(admin_url, cookies=user_cookie, timeout=5)
+        if res.status_code == 200 and "login" not in res.text.lower():
+             return {"status": "vulnerable", "message": "Low privilege user accessed admin URL"}
+        return {"status": "safe", "message": f"Access denied or redirected (Status: {res.status_code})"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def test_trust_relationships(url: str, trusted_origin: str) -> Dict[str, Any]:
+    """
+    Checks if the application accepts requests from a trusted origin (CORS/Referer).
+    """
+    try:
+        headers = {"Origin": trusted_origin, "Referer": trusted_origin}
+        res = requests.get(url, headers=headers, timeout=5)
+
+        cors_header = res.headers.get("Access-Control-Allow-Origin")
+        if cors_header == trusted_origin or cors_header == "*":
+             return {"status": "info", "message": f"Accepted Origin: {cors_header}", "cors_header": cors_header}
+        return {"status": "safe", "message": "Origin not explicitly reflected in CORS header"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def test_non_repudiation(url: str) -> Dict[str, Any]:
+    """
+    Checks for headers or tokens that might indicate non-repudiation controls (e.g. strict logging, signatures).
+    This is a heuristic check.
+    """
+    try:
+        res = requests.head(url, timeout=5)
+        headers = res.headers
+        indicators = []
+        if "X-Request-ID" in headers or "X-Correlation-ID" in headers:
+            indicators.append("Traceability Headers Found")
+
+        # Check if Digital Signature is required (often in custom headers)
+        if any("signature" in h.lower() for h in headers.keys()):
+            indicators.append("Signature Header Found")
+
+        if indicators:
+             return {"status": "info", "indicators": indicators}
+        return {"status": "info", "message": "No obvious non-repudiation headers found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_lack_of_input_validation(url: str, param: str) -> Dict[str, Any]:
+    """
+    Checks if a parameter accepts special characters without error (Generic).
+    """
+    special_chars = "'\"<>()"
+    try:
+        target = f"{url}?{param}={special_chars}"
+        res = requests.get(target, timeout=5)
+        if special_chars in res.text:
+             return {"status": "warning", "message": "Input reflected without encoding (Potential XSS/Injection)"}
+        return {"status": "safe", "message": "Input not reflected verbatim"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_process_timing_issues(url: str) -> Dict[str, Any]:
+    """
+    Checks if multiple rapid requests cause errors (Race Condition / Concurrency).
+    """
+    try:
+        # Send 5 requests rapidly
+        statuses = []
+        for _ in range(5):
+            res = requests.get(url, timeout=5)
+            statuses.append(res.status_code)
+
+        if len(set(statuses)) > 1:
+             return {"status": "warning", "message": "Inconsistent responses received (Race Condition Risk)", "statuses": statuses}
+        return {"status": "safe", "message": "Consistent responses"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

@@ -164,3 +164,76 @@ def check_sensitive_files(url: str) -> Dict[str, Any]:
     if found:
         return {"status": "vulnerable", "files_found": found}
     return {"status": "safe", "message": "None found"}
+
+def check_backup_files(url: str, filename: str) -> Dict[str, Any]:
+    """
+    Checks for backup versions of a specific file (e.g. index.php.bak).
+    """
+    extensions = ['.bak', '.old', '.swp', '.tmp', '.save', '~']
+    found = []
+
+    try:
+        for ext in extensions:
+            target = f"{url}{filename}{ext}"
+            res = requests.head(target, timeout=3)
+            if res.status_code == 200:
+                found.append(target)
+
+        if found:
+            return {"status": "vulnerable", "found_backups": found}
+        return {"status": "safe", "message": "No common backup extensions found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_http_methods(url: str) -> Dict[str, Any]:
+    """
+    Checks enabled HTTP methods (OPTIONS, PUT, DELETE, etc.).
+    """
+    methods = ['OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'TRACE', 'CONNECT', 'PATCH']
+    enabled = []
+
+    try:
+        for m in methods:
+            res = requests.request(m, url, timeout=3)
+            if res.status_code != 405 and res.status_code != 501:
+                enabled.append(f"{m} ({res.status_code})")
+
+        return {"status": "completed", "enabled_methods": enabled}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_client_side_sensitive_data(url: str) -> Dict[str, Any]:
+    """
+    Scans response body for keywords like 'API_KEY', 'password', etc.
+    """
+    keywords = ['api_key', 'apikey', 'secret', 'password', 'auth_token', 'private_key', 'access_key']
+    found = []
+
+    try:
+        res = requests.get(url, timeout=5)
+        text = res.text
+
+        for kw in keywords:
+            if kw in text.lower():
+                # Extract snippet
+                idx = text.lower().find(kw)
+                snippet = text[idx:idx+50]
+                found.append(f"{kw}: {snippet}...")
+
+        if found:
+            return {"status": "warning", "matches": found}
+        return {"status": "safe", "message": "No sensitive keywords found in response"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_cross_site_tracing(url: str) -> Dict[str, Any]:
+    """
+    Specifically checks for XST (Cross-Site Tracing) vulnerability via TRACE method reflecting headers.
+    """
+    try:
+        res = requests.request('TRACE', url, headers={'X-Test-Header': 'XST-Test'}, timeout=5)
+        if 'XST-Test' in res.text:
+             return {"status": "vulnerable", "message": "Server reflects headers in TRACE response (XST Vulnerable)"}
+        return {"status": "safe", "message": "TRACE not reflecting headers or disabled"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

@@ -119,3 +119,78 @@ def check_hsts_header(url: str) -> Dict[str, Any]:
         return {"status": "missing", "message": "HSTS Missing"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def check_weak_ciphers(hostname: str, port: int = 443) -> Dict[str, Any]:
+    """
+    Checks for weak ciphers usage.
+    """
+    # This requires more advanced SSL context configuration which might be limited in standard library
+    # We will simulate by checking the negotiated cipher.
+    try:
+        context = ssl.create_default_context()
+        with socket.create_connection((hostname, port), timeout=5) as sock:
+            with context.wrap_socket(sock, server_hostname=hostname) as ssock:
+                cipher = ssock.cipher()
+                # cipher is typically ('ECDHE-RSA-AES256-GCM-SHA384', 'TLSv1.2', 256)
+                name, protocol, bits = cipher
+                if bits < 128 or 'RC4' in name or 'DES' in name or 'MD5' in name:
+                     return {"status": "warning", "message": f"Weak cipher negotiated: {name}", "cipher": cipher}
+                return {"status": "safe", "message": f"Strong cipher negotiated: {name}", "cipher": cipher}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_digital_certificate_validity(hostname: str, port: int = 443) -> Dict[str, Any]:
+    """
+    Comprehensive check of certificate validity (Self-signed, CN mismatch, etc).
+    """
+    try:
+        context = ssl.create_default_context()
+        with socket.create_connection((hostname, port), timeout=5) as sock:
+            with context.wrap_socket(sock, server_hostname=hostname) as ssock:
+                cert = ssock.getpeercert()
+
+                # Check Common Name (CN)
+                subject = dict(x[0] for x in cert['subject'])
+                cn = subject.get('commonName')
+
+                # Simple wildcard or exact match check
+                # This is handled by ssl module by default (CertificateError), but if we are here it passed verification.
+
+                return {
+                    "status": "valid",
+                    "common_name": cn,
+                    "subject": subject,
+                    "message": "Certificate is valid and trusted by default context."
+                }
+    except ssl.CertificateError as e:
+        return {"status": "invalid", "message": f"Certificate Error: {e}"}
+    except ssl.SSLError as e:
+        return {"status": "invalid", "message": f"SSL Error (Self-signed?): {e}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_login_over_https(url: str) -> Dict[str, Any]:
+    """
+    Checks if a login form action uses HTTPS.
+    """
+    try:
+        if not url.startswith('https://'):
+             return {"status": "vulnerable", "message": "Page itself is not HTTPS"}
+
+        res = requests.get(url, timeout=5)
+        soup = BeautifulSoup(res.text, 'html.parser')
+
+        forms = soup.find_all('form')
+        for form in forms:
+            if 'password' in str(form).lower():
+                action = form.get('action', '')
+                if action and action.startswith('http://'):
+                     return {"status": "vulnerable", "message": f"Login form posts to insecure URL: {action}"}
+                if action and action.startswith('//'):
+                     pass # Protocol relative is usually fine on HTTPS page
+                elif not action:
+                     pass # Posts to self (HTTPS)
+
+        return {"status": "safe", "message": "Login forms appear to use HTTPS"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
