@@ -63,7 +63,7 @@ def check_admin_access(url: str) -> Dict[str, Any]:
                      accessible.append(f"{target} (Status: 200 - Potentially exposed)")
             elif res.status_code == 403:
                 # Good, but existence confirmed
-                pass
+                accessible.append(f"{target} (Status: 403 - Found but Forbidden)")
         except:
             pass
 
