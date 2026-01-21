@@ -136,9 +136,24 @@ def check_xml_rpc(url: str) -> Dict[str, Any]:
         return {"status": "error", "message": str(e)}
 
 def check_local_file_inclusion_heuristic(url: str, param: str) -> Dict[str, Any]:
-    # Very basic check if page size changes drastically or reflects content
-    # Safe check is hard.
-    return {"status": "info", "message": "Heuristic LFI check requires manual analysis usually."}
+    """
+    Checks for LFI by trying to access common files.
+    """
+    payloads = [
+        "../../../../etc/passwd",
+        "c:\\windows\\win.ini"
+    ]
+    try:
+        for payload in payloads:
+            target = f"{url}?{param}={payload}" if '?' not in url else f"{url}&{param}={payload}"
+            res = requests.get(target, timeout=5)
+
+            if "root:x:0:0" in res.text or "[extensions]" in res.text:
+                return {"status": "vulnerable", "message": f"LFI detected with payload: {payload}"}
+
+        return {"status": "safe", "message": "No obvious LFI detected with standard payloads"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 def detect_base64(text: str) -> Dict[str, Any]:
     import base64
@@ -267,13 +282,12 @@ def test_ssi_injection(url: str, param: str) -> Dict[str, Any]:
         res = requests.get(target, timeout=5)
 
         # Look for file listing or common output
-        if "index.php" in res.text or "bin" in res.text: # very generic
-             # Better check if we see our payload reflected but processed
-             pass
+        if "bin" in res.text and "etc" in res.text:
+             return {"status": "vulnerable", "message": "Possible SSI Execution detected (File listing indicators found)"}
 
         if payload in res.text:
-             return {"status": "safe", "message": "Payload reflected but likely not executed"}
-        return {"status": "info", "message": "Manual verification required for SSI execution"}
+             return {"status": "safe", "message": "Payload reflected verbatim (Likely not executed)"}
+        return {"status": "safe", "message": "Payload not reflected and no execution indicators found"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
