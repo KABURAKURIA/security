@@ -311,3 +311,32 @@ def check_http_splitting(url: str, param: str) -> Dict[str, Any]:
         return {"status": "safe", "message": "Header not injected"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def check_parameter_pollution(url: str, param: str) -> Dict[str, Any]:
+    """
+    Checks for HTTP Parameter Pollution (HPP) vulnerabilities.
+    """
+    try:
+        # Test case: param=1&param=2
+        val1 = "12345"
+        val2 = "67890"
+
+        if '?' in url:
+            target = f"{url}&{param}={val1}&{param}={val2}"
+        else:
+            target = f"{url}?{param}={val1}&{param}={val2}"
+
+        res = requests.get(target, timeout=5)
+
+        # Analyze reflection (Basic heuristic)
+        if val1 in res.text and val2 in res.text:
+            return {"status": "info", "message": "Both parameters reflected (Concatenation or both used)"}
+        elif val1 in res.text:
+            return {"status": "info", "message": "First parameter reflected (Precedence: First)"}
+        elif val2 in res.text:
+            return {"status": "info", "message": "Second parameter reflected (Precedence: Last)"}
+        else:
+            return {"status": "safe", "message": "No obvious reflection of pollution parameters"}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

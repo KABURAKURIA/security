@@ -3,6 +3,7 @@ import math
 import base64
 import json
 import requests
+import datetime
 from typing import List, Dict, Union, Any
 
 def calculate_entropy(string: str) -> float:
@@ -68,7 +69,6 @@ def check_jwt_expiration(token: str) -> Dict[str, Any]:
         payload = payload_res.get('payload', {})
         if 'exp' in payload:
             exp = payload['exp']
-            import datetime
             exp_date = datetime.datetime.fromtimestamp(exp)
             if exp_date < datetime.datetime.now():
                 return {"status": "expired", "message": f"Token expired at {exp_date}"}
@@ -186,3 +186,31 @@ def check_clickjacking(url: str) -> Dict[str, Any]:
         return {"status": "vulnerable", "message": "Missing X-Frame-Options and CSP frame-ancestors"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def check_session_timeout(url: str, session_cookie_name: str = "session") -> Dict[str, Any]:
+    """
+    Checks session cookie attributes for timeout settings.
+    """
+    try:
+        res = requests.head(url, timeout=5)
+        found = False
+        for c in res.cookies:
+            if c.name == session_cookie_name:
+                found = True
+                msg = []
+                if c.expires:
+                    exp = datetime.datetime.fromtimestamp(c.expires)
+                    msg.append(f"Expires: {exp}")
+                if c.discard:
+                     msg.append("Discard (Session cookie)")
+
+                if not msg:
+                    return {"status": "info", "message": "Cookie found but no explicit timeout attributes (likely browser session)"}
+                return {"status": "success", "message": "; ".join(msg)}
+
+        if not found:
+             return {"status": "not_found", "message": f"Cookie '{session_cookie_name}' not found"}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    return {"status": "error", "message": "Unknown error"}
