@@ -289,3 +289,23 @@ def check_third_party_content(url: str) -> Dict[str, Any]:
         return {"status": "success", "third_party_domains": list(third_party)}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def check_search_engine_caches(url: str) -> Dict[str, Any]:
+    """
+    Generates links to search engine caches and archives.
+    """
+    try:
+        if not url.startswith('http'):
+            url = 'http://' + url
+
+        google_cache = f"http://webcache.googleusercontent.com/search?q=cache:{url}"
+        wayback_machine = f"https://web.archive.org/web/*/{url}"
+
+        return {
+            "status": "success",
+            "google_cache": google_cache,
+            "wayback_machine": wayback_machine,
+            "message": "Use these links to manually check for cached sensitive information."
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
