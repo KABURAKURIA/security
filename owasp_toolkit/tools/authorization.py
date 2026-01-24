@@ -45,7 +45,8 @@ def check_admin_access(url: str) -> Dict[str, Any]:
     """
     admin_paths = [
         "/admin", "/administrator", "/admin_panel", "/dashboard", "/backend",
-        "/console", "/manage", "/root"
+        "/console", "/manage", "/root", "/webadmin", "/sysadmin", "/portal",
+        "/siteadmin", "/admin_login", "/controlpanel", "/admin-console"
     ]
 
     accessible = []
@@ -59,7 +60,8 @@ def check_admin_access(url: str) -> Dict[str, Any]:
             # Or if it's 403/401 it's good.
             if res.status_code == 200:
                 # Check for login form keywords to rule out login pages
-                if "login" not in res.text.lower() and "password" not in res.text.lower():
+                text_lower = res.text.lower()
+                if "login" not in text_lower and "password" not in text_lower and "sign in" not in text_lower:
                      accessible.append(f"{target} (Status: 200 - Potentially exposed)")
             elif res.status_code == 403:
                 # Good, but existence confirmed

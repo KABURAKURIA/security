@@ -4,15 +4,28 @@ import re
 import time
 from typing import List, Dict, Union, Any
 
-def validate_data_integrity(data: str, expected_hash: str, algorithm: str = 'sha256') -> Dict[str, Any]:
+def validate_data_integrity(expected_hash: str, data: str = None, url: str = None, algorithm: str = 'sha256') -> Dict[str, Any]:
     """
-    Verifies if data matches the expected hash (integrity check).
+    Verifies if data (or content from URL) matches the expected hash (integrity check).
+    Must provide either 'data' or 'url'.
     """
     try:
+        content_bytes = b""
+
+        if url:
+            res = requests.get(url, timeout=10)
+            if res.status_code != 200:
+                return {"status": "error", "message": f"Failed to fetch URL. Status: {res.status_code}"}
+            content_bytes = res.content
+        elif data is not None:
+            content_bytes = data.encode()
+        else:
+            return {"status": "error", "message": "Must provide either 'data' or 'url'"}
+
         if algorithm == 'sha256':
-            calc_hash = hashlib.sha256(data.encode()).hexdigest()
+            calc_hash = hashlib.sha256(content_bytes).hexdigest()
         elif algorithm == 'md5':
-            calc_hash = hashlib.md5(data.encode()).hexdigest()
+            calc_hash = hashlib.md5(content_bytes).hexdigest()
         else:
              return {"status": "error", "message": "Unsupported algorithm"}
 
@@ -103,19 +116,32 @@ def check_timing_attacks(url: str, username: str) -> Dict[str, Any]:
     Checks if login response time differs significantly for valid vs invalid user (User Enumeration).
     """
     try:
-        # Baseline (likely invalid user)
-        start = time.time()
-        requests.post(url, data={'username': 'invalid_user_12345', 'password': 'password'}, timeout=5)
-        invalid_time = time.time() - start
+        iterations = 5
+        invalid_times = []
+        target_times = []
 
-        # Target user
-        start = time.time()
-        requests.post(url, data={'username': username, 'password': 'password'}, timeout=5)
-        target_time = time.time() - start
+        # Warm-up request
+        requests.post(url, data={'username': 'warmup', 'password': 'password'}, timeout=5)
 
-        if target_time > (invalid_time * 2) and target_time > 0.5: # 0.5s threshhold to avoid noise
-             return {"status": "vulnerable", "message": f"Significant timing difference detected (Invalid: {invalid_time:.2f}s, Target: {target_time:.2f}s)"}
-        return {"status": "safe", "message": "No significant timing difference"}
+        for _ in range(iterations):
+            # Baseline (likely invalid user)
+            start = time.time()
+            requests.post(url, data={'username': 'invalid_user_12345', 'password': 'password'}, timeout=5)
+            invalid_times.append(time.time() - start)
+
+            # Target user
+            start = time.time()
+            requests.post(url, data={'username': username, 'password': 'password'}, timeout=5)
+            target_times.append(time.time() - start)
+
+        avg_invalid = sum(invalid_times) / iterations
+        avg_target = sum(target_times) / iterations
+
+        # If target takes significantly longer (e.g. 50% more and at least 0.5s difference)
+        # We adjust the threshold to be robust but sensitive enough
+        if avg_target > (avg_invalid * 1.5) and (avg_target - avg_invalid) > 0.5:
+             return {"status": "vulnerable", "message": f"Significant timing difference detected (Avg Invalid: {avg_invalid:.3f}s, Avg Target: {avg_target:.3f}s)"}
+        return {"status": "safe", "message": f"No significant timing difference (Avg Invalid: {avg_invalid:.3f}s, Avg Target: {avg_target:.3f}s)"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

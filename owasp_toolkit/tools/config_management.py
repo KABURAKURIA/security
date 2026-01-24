@@ -98,12 +98,20 @@ def check_cookie_flags(url: str) -> Dict[str, Any]:
             flags = []
             if cookie.secure:
                 flags.append("Secure")
-            # HttpOnly is hard to detect from client side requests library unless we parse Set-Cookie headers manually
             results.append(f"{cookie.name}: Secure={cookie.secure}")
 
-        # Parse Set-Cookie header manually for HttpOnly
+        # Parse Set-Cookie header manually for HttpOnly and SameSite
         if 'Set-Cookie' in response.headers:
-             results.append(f"Raw Set-Cookie: {response.headers['Set-Cookie']}")
+             raw_cookie = response.headers['Set-Cookie']
+             if 'HttpOnly' in raw_cookie:
+                 results.append("HttpOnly: Detected (in Set-Cookie)")
+             else:
+                 results.append("HttpOnly: Missing (in Set-Cookie)")
+
+             if 'SameSite' in raw_cookie:
+                 results.append("SameSite: Detected (in Set-Cookie)")
+             else:
+                 results.append("SameSite: Missing (in Set-Cookie)")
 
         if results:
             return {"status": "success", "cookies": results}

@@ -1,14 +1,17 @@
 import requests
 from bs4 import BeautifulSoup
 from typing import List, Dict, Union, Any
+from urllib.parse import urljoin, urlparse
 
 def check_web_storage_usage(url: str) -> Dict[str, Any]:
     """
     Checks if the application uses LocalStorage or SessionStorage (Static analysis of JS).
+    Fetches same-origin scripts to check them as well.
     """
     try:
         res = requests.get(url, timeout=5)
         soup = BeautifulSoup(res.text, 'html.parser')
+        base_domain = urlparse(url).netloc
 
         scripts = soup.find_all('script')
         usage = []
@@ -19,12 +22,24 @@ def check_web_storage_usage(url: str) -> Dict[str, Any]:
                 if 'sessionStorage' in script.string:
                     usage.append("sessionStorage detected in inline script")
             elif script.get('src'):
-                # We could fetch external scripts but that's heavy.
-                pass
+                src = script.get('src')
+                full_src = urljoin(url, src)
+
+                # Check if same origin (simplified check)
+                if urlparse(full_src).netloc == base_domain:
+                    try:
+                        js_res = requests.get(full_src, timeout=3)
+                        if js_res.status_code == 200:
+                            if 'localStorage' in js_res.text:
+                                usage.append(f"localStorage detected in {src}")
+                            if 'sessionStorage' in js_res.text:
+                                usage.append(f"sessionStorage detected in {src}")
+                    except:
+                        pass # Ignore fetch errors for external scripts
 
         if usage:
             return {"status": "detected", "usage": usage}
-        return {"status": "not_detected", "message": "No direct Web Storage usage found in inline scripts"}
+        return {"status": "not_detected", "message": "No direct Web Storage usage found in scripts"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
