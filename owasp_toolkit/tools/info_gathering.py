@@ -292,20 +292,37 @@ def check_third_party_content(url: str) -> Dict[str, Any]:
 
 def check_search_engine_caches(url: str) -> Dict[str, Any]:
     """
-    Generates links to search engine caches and archives.
+    Generates links to search engine caches and actively checks availability via APIs (e.g. Wayback Machine).
     """
     try:
         if not url.startswith('http'):
             url = 'http://' + url
 
         google_cache = f"http://webcache.googleusercontent.com/search?q=cache:{url}"
-        wayback_machine = f"https://web.archive.org/web/*/{url}"
+        wayback_machine_link = f"https://web.archive.org/web/*/{url}"
+
+        # Active check for Wayback Machine
+        wayback_api = f"http://archive.org/wayback/available?url={url}"
+        wayback_found = False
+        wayback_snapshot = None
+
+        try:
+            res = requests.get(wayback_api, timeout=5)
+            if res.status_code == 200:
+                data = res.json()
+                if "archived_snapshots" in data and "closest" in data["archived_snapshots"]:
+                    wayback_found = True
+                    wayback_snapshot = data["archived_snapshots"]["closest"].get("url")
+        except:
+            pass # Fail silently on API error, fall back to links
 
         return {
-            "status": "success",
+            "status": "success" if not wayback_found else "found",
             "google_cache": google_cache,
-            "wayback_machine": wayback_machine,
-            "message": "Use these links to manually check for cached sensitive information."
+            "wayback_machine_link": wayback_machine_link,
+            "wayback_snapshot_available": wayback_found,
+            "wayback_snapshot_url": wayback_snapshot,
+            "message": "Cache links generated. Wayback Machine snapshot found." if wayback_found else "Cache links generated. No immediate snapshot found via API."
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}

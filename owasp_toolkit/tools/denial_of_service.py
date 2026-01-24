@@ -53,11 +53,14 @@ def check_sql_wildcard_dos(url: str, param: str) -> Dict[str, Any]:
     Checks for SQL Wildcard Denial of Service (e.g. searching for '%').
     """
     try:
-        base_time = 0
-        # Measure baseline
-        start = time.time()
-        requests.get(url, timeout=5)
-        base_time = time.time() - start
+        # Measure baseline (Average of 3 requests)
+        times = []
+        for _ in range(3):
+            start = time.time()
+            requests.get(url, timeout=5)
+            times.append(time.time() - start)
+
+        base_time = sum(times) / len(times)
 
         # Inject Wildcard
         if '?' in url:
@@ -69,9 +72,10 @@ def check_sql_wildcard_dos(url: str, param: str) -> Dict[str, Any]:
         requests.get(target, timeout=10)
         dos_time = time.time() - start
 
+        # Use a multiplier of 5 and absolute difference of 2s
         if dos_time > (base_time * 5) and dos_time > 2:
-             return {"status": "vulnerable", "message": f"Response time significantly increased with wildcard (Baseline: {base_time:.2f}s, Wildcard: {dos_time:.2f}s)"}
-        return {"status": "safe", "message": "No significant delay detected with wildcard"}
+             return {"status": "vulnerable", "message": f"Response time significantly increased with wildcard (Baseline Avg: {base_time:.2f}s, Wildcard: {dos_time:.2f}s)"}
+        return {"status": "safe", "message": f"No significant delay detected with wildcard (Baseline: {base_time:.2f}s, Wildcard: {dos_time:.2f}s)"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
