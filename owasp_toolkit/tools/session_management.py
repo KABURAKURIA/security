@@ -4,6 +4,7 @@ import base64
 import json
 import requests
 import datetime
+from bs4 import BeautifulSoup
 from typing import List, Dict, Union, Any
 
 def calculate_entropy(string: str) -> float:
@@ -138,11 +139,37 @@ def check_session_termination_logout(logout_url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def test_multiple_simultaneous_sessions(url: str, username: str) -> Dict[str, Any]:
+def test_multiple_simultaneous_sessions(url: str, username: str, session_token1: str = None, session_token2: str = None, token_name: str = 'session') -> Dict[str, Any]:
     """
-    Checks if multiple sessions are allowed (Generic description).
+    Checks if multiple sessions are allowed for the same user.
+    If session tokens are provided, it verifies if both are active simultaneously.
     """
-    return {"status": "info", "message": "This test requires two active sessions to be manually verified. Automated check not feasible without credential pairs."}
+    try:
+        if not session_token1 or not session_token2:
+             return {"status": "info", "message": "This test requires two active session tokens (session_token1, session_token2) to be provided for automated verification."}
+
+        # Verify Token 1
+        cookies1 = {token_name: session_token1}
+        res1 = requests.get(url, cookies=cookies1, timeout=5)
+
+        # Verify Token 2
+        cookies2 = {token_name: session_token2}
+        res2 = requests.get(url, cookies=cookies2, timeout=5)
+
+        # Check if both are authenticated (assuming 200 OK and no redirect to login)
+        # This is heuristic.
+        valid1 = res1.status_code == 200 and "login" not in res1.text.lower()
+        valid2 = res2.status_code == 200 and "login" not in res2.text.lower()
+
+        if valid1 and valid2:
+             return {"status": "vulnerable", "message": "Both sessions appear active simultaneously. Concurrent sessions are allowed."}
+        elif not valid1 and not valid2:
+             return {"status": "error", "message": "Both sessions appear invalid."}
+        else:
+             return {"status": "safe", "message": "One of the sessions was invalidated (Concurrent sessions likely prevented)."}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 def check_session_fixation(url: str) -> Dict[str, Any]:
     """
@@ -214,3 +241,53 @@ def check_session_timeout(url: str, session_cookie_name: str = "session") -> Dic
     except Exception as e:
         return {"status": "error", "message": str(e)}
     return {"status": "error", "message": "Unknown error"}
+
+def check_csrf_protection(url: str) -> Dict[str, Any]:
+    """
+    Checks for CSRF protection mechanisms in forms on the page.
+    Looking for:
+    1. Anti-CSRF tokens in hidden fields.
+    2. SameSite cookie attributes (mitigation).
+    """
+    try:
+        res = requests.get(url, timeout=5)
+        soup = BeautifulSoup(res.text, 'html.parser')
+
+        forms = soup.find_all('form')
+        results = []
+
+        csrf_tokens = ['csrf_token', '_token', 'csrf', 'xsrf_token', 'authenticity_token']
+
+        for form in forms:
+            action = form.get('action', 'current page')
+            method = form.get('method', 'get').lower()
+
+            if method == 'post':
+                found_token = False
+                inputs = form.find_all('input')
+                for inp in inputs:
+                    name = inp.get('name', '').lower()
+                    if any(t in name for t in csrf_tokens):
+                        found_token = True
+                        break
+
+                if not found_token:
+                    results.append(f"Form (action={action}) missing obvious CSRF token")
+
+        # Check Cookies for SameSite
+        samesite_missing = []
+        if 'Set-Cookie' in res.headers:
+             # Basic check, proper parsing is harder without a library or regex
+             if 'SameSite=Strict' not in res.headers['Set-Cookie'] and 'SameSite=Lax' not in res.headers['Set-Cookie']:
+                 samesite_missing.append("Session cookies might be missing SameSite attribute")
+
+        if results:
+             return {"status": "vulnerable", "form_issues": results, "cookie_issues": samesite_missing}
+
+        if samesite_missing:
+             return {"status": "warning", "message": "Forms seem protected, but SameSite attribute might be missing."}
+
+        return {"status": "safe", "message": "CSRF tokens found and/or SameSite attribute detected."}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

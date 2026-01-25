@@ -12,6 +12,9 @@ from owasp_toolkit.tools import authorization
 from owasp_toolkit.tools import business_logic
 from owasp_toolkit.tools import html5
 from owasp_toolkit.tools import config_management
+from owasp_toolkit.tools import authentication
+from owasp_toolkit.tools import session_management
+from owasp_toolkit.tools import file_uploads
 
 class TestImprovedFunctionality(unittest.TestCase):
 
@@ -142,6 +145,105 @@ class TestImprovedFunctionality(unittest.TestCase):
         self.assertEqual(result['status'], 'success')
         self.assertIn("HttpOnly: Detected (in Set-Cookie)", result['cookies'])
         self.assertIn("SameSite: Detected (in Set-Cookie)", result['cookies'])
+
+    # --- New Tests ---
+
+    @patch('owasp_toolkit.tools.authentication.requests.post')
+    def test_check_user_enumeration(self, mock_post):
+        # Scenario: Content difference
+        # Invalid user response
+        mock_invalid = MagicMock()
+        mock_invalid.text = "User not found"
+        mock_invalid.status_code = 200
+
+        # Valid user response
+        mock_valid = MagicMock()
+        mock_valid.text = "Incorrect password"
+        mock_valid.status_code = 200
+
+        mock_post.side_effect = [mock_invalid, mock_valid]
+
+        result = authentication.check_user_enumeration("http://example.com", valid_username="admin")
+
+        self.assertEqual(result['status'], 'vulnerable')
+        self.assertIn("Content Enumeration", result['message'])
+
+    @patch('owasp_toolkit.tools.session_management.requests.get')
+    def test_check_csrf_protection(self, mock_get):
+        # Scenario: Form without CSRF token
+        mock_response = MagicMock()
+        mock_response.text = """
+        <html>
+        <form action="/login" method="POST">
+            <input type="text" name="username">
+            <input type="password" name="password">
+        </form>
+        </html>
+        """
+        mock_response.headers = {}
+        mock_get.return_value = mock_response
+
+        result = session_management.check_csrf_protection("http://example.com")
+        self.assertEqual(result['status'], 'vulnerable')
+        self.assertIn("missing obvious CSRF token", result['form_issues'][0])
+
+    @patch('owasp_toolkit.tools.session_management.requests.get')
+    def test_check_csrf_protection_safe(self, mock_get):
+        # Scenario: Form WITH CSRF token
+        mock_response = MagicMock()
+        mock_response.text = """
+        <html>
+        <form action="/login" method="POST">
+            <input type="text" name="username">
+            <input type="hidden" name="csrf_token" value="12345">
+        </form>
+        </html>
+        """
+        mock_response.headers = {'Set-Cookie': 'session=123; SameSite=Strict'}
+        mock_get.return_value = mock_response
+
+        result = session_management.check_csrf_protection("http://example.com")
+        self.assertEqual(result['status'], 'safe')
+
+    @patch('owasp_toolkit.tools.file_uploads.requests.post')
+    def test_check_antivirus_scanning_vulnerable(self, mock_post):
+        # Scenario: EICAR accepted (200 OK)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = "Upload successful"
+        mock_post.return_value = mock_response
+
+        result = file_uploads.check_antivirus_scanning("http://example.com/upload", "file")
+        self.assertEqual(result['status'], 'vulnerable')
+        self.assertIn("EICAR test file accepted", result['message'])
+
+    @patch('owasp_toolkit.tools.file_uploads.requests.post')
+    def test_check_antivirus_scanning_safe(self, mock_post):
+        # Scenario: EICAR rejected (403)
+        mock_response = MagicMock()
+        mock_response.status_code = 403
+        mock_response.text = "Malware detected"
+        mock_post.return_value = mock_response
+
+        result = file_uploads.check_antivirus_scanning("http://example.com/upload", "file")
+        self.assertEqual(result['status'], 'safe')
+
+    @patch('owasp_toolkit.tools.session_management.requests.get')
+    def test_multiple_simultaneous_sessions(self, mock_get):
+        # Scenario: Both sessions valid
+        mock_res1 = MagicMock()
+        mock_res1.status_code = 200
+        mock_res1.text = "Welcome User"
+
+        mock_res2 = MagicMock()
+        mock_res2.status_code = 200
+        mock_res2.text = "Welcome User"
+
+        mock_get.side_effect = [mock_res1, mock_res2]
+
+        result = session_management.test_multiple_simultaneous_sessions("http://example.com", "user", "token1", "token2")
+        self.assertEqual(result['status'], 'vulnerable')
+        self.assertIn("Both sessions appear active", result['message'])
 
 if __name__ == '__main__':
     unittest.main()
