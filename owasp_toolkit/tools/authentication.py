@@ -4,6 +4,7 @@ import re
 from typing import List, Dict, Union, Any
 import random
 import string
+import time
 
 def check_login_forms_https(url: str) -> Dict[str, Any]:
     """
@@ -247,5 +248,55 @@ def check_cache_management(url: str) -> Dict[str, Any]:
         if issues:
              return {"status": "warning", "issues": issues, "current_header": cache_control}
         return {"status": "safe", "message": "Cache-Control seems robust"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_user_enumeration(url: str, username_field: str = 'username', password_field: str = 'password', valid_username: str = None, invalid_username: str = None) -> Dict[str, Any]:
+    """
+    Checks for user enumeration vulnerabilities by comparing server responses for valid vs. invalid usernames.
+    Checks for:
+    1. Content differences (e.g. "User not found" vs "Incorrect password")
+    2. Timing differences (Time-based enumeration)
+
+    If valid_username is not provided, it only checks for potential different error messages using random users,
+    or returns an info message.
+    """
+    try:
+        if not invalid_username:
+            invalid_username = ''.join(random.choices(string.ascii_lowercase, k=10))
+
+        # Test with Invalid User
+        start_invalid = time.time()
+        res_invalid = requests.post(url, data={username_field: invalid_username, password_field: 'wrongpass'}, timeout=10)
+        time_invalid = time.time() - start_invalid
+        content_invalid = res_invalid.text
+
+        if not valid_username:
+             # Just return info about the invalid attempt
+             return {"status": "info", "message": f"Checked with invalid user '{invalid_username}'. Provide a valid username to test for enumeration."}
+
+        # Test with Valid User (but wrong password)
+        start_valid = time.time()
+        res_valid = requests.post(url, data={username_field: valid_username, password_field: 'wrongpass'}, timeout=10)
+        time_valid = time.time() - start_valid
+        content_valid = res_valid.text
+
+        # 1. Check Content Differences
+        # Simple heuristic: compare lengths and look for specific error keywords difference
+        diff_len = abs(len(content_invalid) - len(content_valid))
+
+        # Strip random nonces or timestamps might be needed for real robustness, but simplified here:
+        if diff_len > 20: # Arbitrary small threshold
+            return {"status": "vulnerable", "message": "Significant content length difference detected between valid and invalid user responses.", "diff_length": diff_len}
+
+        if "user not found" in content_invalid.lower() and "user not found" not in content_valid.lower():
+             return {"status": "vulnerable", "message": "Different error messages detected (Content Enumeration)."}
+
+        # 2. Check Timing Differences
+        # If valid user takes significantly longer (e.g. hashing password)
+        if time_valid > (time_invalid * 2) and (time_valid - time_invalid) > 0.5:
+             return {"status": "vulnerable", "message": f"Timing difference detected (Valid: {time_valid:.2f}s, Invalid: {time_invalid:.2f}s)"}
+
+        return {"status": "safe", "message": "No obvious enumeration (content or timing) detected"}
     except Exception as e:
         return {"status": "error", "message": str(e)}

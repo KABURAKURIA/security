@@ -89,3 +89,26 @@ def sanitize_filename_check(filename: str) -> Dict[str, Any]:
     if re.match(r'^[\w\-. ]+$', filename):
         return {"status": "safe", "message": "Safe filename"}
     return {"status": "unsafe", "message": "Unsafe characters detected"}
+
+def check_antivirus_scanning(url: str, field_name: str) -> Dict[str, Any]:
+    """
+    Checks if the server scans uploaded files for viruses using the EICAR test string.
+    """
+    eicar_string = r"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+    try:
+        files = {field_name: ('eicar_test.txt', eicar_string)}
+        res = requests.post(url, files=files, timeout=10)
+
+        # If rejected (4xx/5xx) or specific message
+        if res.status_code in [400, 403, 422, 500]:
+             return {"status": "safe", "message": f"File rejected (Status {res.status_code}). Potential Antivirus/Validation active."}
+
+        if "virus" in res.text.lower() or "malware" in res.text.lower():
+             return {"status": "safe", "message": "Virus detected message found in response."}
+
+        if res.status_code == 200:
+             return {"status": "vulnerable", "message": "EICAR test file accepted (Status 200). Antivirus scanning might be missing."}
+
+        return {"status": "info", "message": f"Server responded with {res.status_code}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
