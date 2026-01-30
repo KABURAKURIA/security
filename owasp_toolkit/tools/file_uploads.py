@@ -22,6 +22,25 @@ def check_file_upload_size_limit(url: str, field_name: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+def check_file_content_type_validation(url: str, field_name: str) -> Dict[str, Any]:
+    """
+    Checks if the server validates the Content-Type header independently of the file extension.
+    Uploads a benign file (e.g. .jpg) with a mismatched MIME type (e.g. text/plain).
+    """
+    try:
+        # File extension is image, but Content-Type is text
+        files = {field_name: ('test_image.jpg', b'fake image content', 'text/plain')}
+        res = requests.post(url, files=files, timeout=5)
+
+        if res.status_code == 200:
+             return {"status": "warning", "message": "File accepted despite mismatched Content-Type (Possible lack of strict MIME validation)"}
+        elif res.status_code in [400, 415, 422]:
+             return {"status": "safe", "message": f"File rejected (Status {res.status_code}) - Likely validating Content-Type"}
+
+        return {"status": "info", "message": f"Server responded with {res.status_code}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 def check_malicious_file_extensions(url: str, field_name: str) -> Dict[str, Any]:
     """
     Tests if the server accepts dangerous file extensions.

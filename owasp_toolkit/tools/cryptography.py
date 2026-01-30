@@ -1,7 +1,23 @@
 import hashlib
 import base64
 import codecs
+import re
 from typing import List, Dict, Union, Any
+
+def check_weak_algorithms_usage(text: str) -> Dict[str, Any]:
+    """
+    Checks for references to weak cryptographic algorithms in text.
+    """
+    weak_algos = ['MD5', 'RC4', 'DES', 'Blowfish', 'SHA1']
+    found = []
+
+    for algo in weak_algos:
+        if re.search(r'\b' + re.escape(algo) + r'\b', text, re.IGNORECASE):
+            found.append(algo)
+
+    if found:
+        return {"status": "vulnerable", "message": f"Weak algorithms referenced: {', '.join(found)}", "found": found}
+    return {"status": "safe", "message": "No obvious weak algorithms referenced"}
 
 def calculate_hash(text: str, algorithm: str = 'sha256') -> Dict[str, Any]:
     try:
