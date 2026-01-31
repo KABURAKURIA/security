@@ -20,6 +20,154 @@ def scan_reflected_xss(url: str, param: str, payload: str = "<script>alert(1)</s
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+def check_nosql_injection(url: str, param: str) -> Dict[str, Any]:
+    """
+    Checks for NoSQL Injection vulnerabilities (MongoDB).
+    """
+    try:
+        # Baseline
+        if '?' in url:
+            base_url = f"{url}&{param}=valid"
+        else:
+            base_url = f"{url}?{param}=valid"
+
+        base_res = requests.get(base_url, timeout=5)
+
+        # Injection: [$ne]=wontmatch (Not Equal to 'wontmatch', which is likely true)
+        if '?' in url:
+            target = f"{url}&{param}[$ne]=wontmatch"
+        else:
+            target = f"{url}?{param}[$ne]=wontmatch"
+
+        inj_res = requests.get(target, timeout=5)
+
+        # Heuristic: If response length differs significantly from baseline or errors, might be vulnerable
+        # If injected response is significantly different length than baseline (indicating it processed the object)
+        diff = abs(len(inj_res.text) - len(base_res.text))
+
+        if diff > 50 and inj_res.status_code == 200: # Arbitrary
+             return {"status": "vulnerable", "message": "Response changed with NoSQL operator injection"}
+
+        if "MongoError" in inj_res.text:
+             return {"status": "vulnerable", "message": "MongoDB Error detected"}
+
+        return {"status": "safe", "message": "No obvious NoSQLi reaction"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_mass_assignment(url: str, baseline_params: Dict[str, Any], privileged_params: Dict[str, Any] = None) -> Dict[str, Any]:
+    """
+    Checks for Mass Assignment by injecting privileged parameters.
+    """
+    if privileged_params is None:
+        privileged_params = {'role': 'admin', 'isAdmin': 'true', 'superuser': '1'}
+
+    try:
+        # Baseline request
+        res_base = requests.post(url, data=baseline_params, timeout=5)
+
+        # Injected request
+        injected_params = baseline_params.copy()
+        injected_params.update(privileged_params)
+
+        res_inj = requests.post(url, data=injected_params, timeout=5)
+
+        # Check if privileged params are reflected in response text (e.g. "role": "admin")
+        # that wasn't in baseline
+        found = []
+        for k, v in privileged_params.items():
+            if v in res_inj.text and v not in res_base.text:
+                found.append(k)
+
+        if found:
+             return {"status": "vulnerable", "message": f"Potential Mass Assignment: {found} reflected or accepted"}
+
+        return {"status": "safe", "message": "No privileged parameters reflected"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_code_injection(url: str, param: str) -> Dict[str, Any]:
+    """
+    Checks for Server-Side Code Injection (PHP/Python/etc).
+    """
+    payloads = [
+        "phpinfo()",
+        "system('id')",
+        "import os; os.system('id')",
+        "print(1337*1337)"
+    ]
+    try:
+        for payload in payloads:
+            target = f"{url}?{param}={payload}" if '?' not in url else f"{url}&{param}={payload}"
+            res = requests.get(target, timeout=5)
+
+            if "PHP Version" in res.text:
+                 return {"status": "vulnerable", "message": "PHP Info exposed (Code Execution)"}
+            if "uid=" in res.text and "gid=" in res.text:
+                 return {"status": "vulnerable", "message": "System command executed (uid/gid found)"}
+            if "1787569" in res.text: # 1337*1337
+                 return {"status": "vulnerable", "message": "Code evaluation detected (Math result found)"}
+
+        return {"status": "safe", "message": "No code injection indicators found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_expression_language_injection(url: str, param: str) -> Dict[str, Any]:
+    """
+    Checks for Expression Language (EL) Injection.
+    """
+    payload = "${7*7}"
+    try:
+        target = f"{url}?{param}={payload}" if '?' not in url else f"{url}&{param}={payload}"
+        res = requests.get(target, timeout=5)
+
+        if "49" in res.text and "${7*7}" not in res.text:
+             return {"status": "vulnerable", "message": "EL Injection detected (Math evaluated)"}
+        return {"status": "safe", "message": "No EL injection detected"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_xquery_injection(url: str, param: str) -> Dict[str, Any]:
+    """
+    Checks for XQuery Injection.
+    """
+    payload = "' or 1=1 or ''='"
+    # Generic injection similar to SQLi but for XML
+    try:
+        target = f"{url}?{param}={payload}" if '?' not in url else f"{url}&{param}={payload}"
+        res = requests.get(target, timeout=5)
+
+        # Look for XQuery specific errors
+        errors = ["XQueryException", "Saxon", "saxon:compile"]
+        for err in errors:
+            if err in res.text:
+                 return {"status": "vulnerable", "message": f"XQuery Error detected: {err}"}
+        return {"status": "safe", "message": "No XQuery errors detected"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_null_session_cookie(response: Any) -> Dict[str, Any]:
+    """
+    Manually checks for session cookies in headers if not automatically parsed.
+    """
+    try:
+        # response should be a requests.Response object
+        headers = response.headers
+        cookie_header = headers.get('Set-Cookie', '')
+
+        common_names = ['PHPSESSID', 'JSESSIONID', 'ASPSESSIONID', 'SID', 'session']
+        found = []
+
+        for name in common_names:
+            if name in cookie_header:
+                found.append(name)
+
+        if found:
+             return {"status": "info", "message": f"Session cookies found in headers: {found}", "cookies": found}
+        return {"status": "safe", "message": "No common session cookies found in Set-Cookie header"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 def scan_sql_error(url: str, param: str) -> Dict[str, Any]:
     """Checks for common SQL error messages."""
     payload = "'"

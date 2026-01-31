@@ -37,7 +37,7 @@ class TestTools(unittest.TestCase):
 
     def test_business_logic(self):
         # Integrity check
-        result = business_logic.validate_data_integrity("test", "098f6bcd4621d373cade4e832627b4f6", "md5")
+        result = business_logic.validate_data_integrity("098f6bcd4621d373cade4e832627b4f6", data="test", algorithm="md5")
         self.assertEqual(result["status"], "success")
         self.assertEqual(result["message"], "Integrity verified (Matches)")
 
