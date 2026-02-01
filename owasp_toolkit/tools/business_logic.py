@@ -3,6 +3,7 @@ import requests
 import re
 import time
 from typing import List, Dict, Union, Any
+from .utils import replace_or_append_param
 
 def validate_data_integrity(expected_hash: str, data: str = None, url: str = None, algorithm: str = 'sha256') -> Dict[str, Any]:
     """
@@ -44,10 +45,7 @@ def check_sequential_ids(url: str, param: str) -> Dict[str, Any]:
         # Check ID 1, 2, 3
         results = []
         for i in range(1, 4):
-            if '?' in url:
-                target = f"{url}&{param}={i}"
-            else:
-                target = f"{url}?{param}={i}"
+            target = replace_or_append_param(url, param, str(i))
             res = requests.head(target, timeout=3)
             if res.status_code == 200:
                 results.append(i)
@@ -200,7 +198,7 @@ def check_lack_of_input_validation(url: str, param: str) -> Dict[str, Any]:
     """
     special_chars = "'\"<>()"
     try:
-        target = f"{url}?{param}={special_chars}"
+        target = replace_or_append_param(url, param, special_chars)
         res = requests.get(target, timeout=5)
         if special_chars in res.text:
              return {"status": "warning", "message": "Input reflected without encoding (Potential XSS/Injection)"}

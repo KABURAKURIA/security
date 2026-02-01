@@ -3,15 +3,13 @@ from bs4 import BeautifulSoup
 import html
 from typing import List, Dict, Union, Any
 import re
+from .utils import replace_or_append_param
 
 def scan_reflected_xss(url: str, param: str, payload: str = "<script>alert(1)</script>") -> Dict[str, Any]:
     """Checks if a payload is reflected in the response body."""
     try:
         # Construct URL with payload
-        if '?' in url:
-            target = f"{url}&{param}={payload}"
-        else:
-            target = f"{url}?{param}={payload}"
+        target = replace_or_append_param(url, param, payload)
 
         response = requests.get(target, timeout=5)
         if payload in response.text:
@@ -26,18 +24,19 @@ def check_nosql_injection(url: str, param: str) -> Dict[str, Any]:
     """
     try:
         # Baseline
-        if '?' in url:
-            base_url = f"{url}&{param}=valid"
-        else:
-            base_url = f"{url}?{param}=valid"
-
+        base_url = replace_or_append_param(url, param, "valid")
         base_res = requests.get(base_url, timeout=5)
 
-        # Injection: [$ne]=wontmatch (Not Equal to 'wontmatch', which is likely true)
-        if '?' in url:
-            target = f"{url}&{param}[$ne]=wontmatch"
-        else:
-            target = f"{url}?{param}[$ne]=wontmatch"
+        # Injection: [$ne]=wontmatch
+        # We use the key "param[$ne]" to simulate object injection
+        # Note: replace_or_append_param handles the key literally, which is what we want for URL encoding
+        target = replace_or_append_param(url, f"{param}[$ne]", "wontmatch")
+
+        # We might also want to ensure the original 'param' is removed to avoid conflict?
+        # But replace_or_append_param only affects the key passed.
+        # For now, appending the operator is the standard way tools do this if they don't fully parse.
+        # Ideally we should remove 'param' if we inject 'param[$ne]'.
+        # But let's stick to appending the injection key which effectively adds it to the query.
 
         inj_res = requests.get(target, timeout=5)
 
@@ -98,7 +97,7 @@ def check_code_injection(url: str, param: str) -> Dict[str, Any]:
     ]
     try:
         for payload in payloads:
-            target = f"{url}?{param}={payload}" if '?' not in url else f"{url}&{param}={payload}"
+            target = replace_or_append_param(url, param, payload)
             res = requests.get(target, timeout=5)
 
             if "PHP Version" in res.text:
@@ -118,7 +117,7 @@ def check_expression_language_injection(url: str, param: str) -> Dict[str, Any]:
     """
     payload = "${7*7}"
     try:
-        target = f"{url}?{param}={payload}" if '?' not in url else f"{url}&{param}={payload}"
+        target = replace_or_append_param(url, param, payload)
         res = requests.get(target, timeout=5)
 
         if "49" in res.text and "${7*7}" not in res.text:
@@ -134,7 +133,7 @@ def check_xquery_injection(url: str, param: str) -> Dict[str, Any]:
     payload = "' or 1=1 or ''='"
     # Generic injection similar to SQLi but for XML
     try:
-        target = f"{url}?{param}={payload}" if '?' not in url else f"{url}&{param}={payload}"
+        target = replace_or_append_param(url, param, payload)
         res = requests.get(target, timeout=5)
 
         # Look for XQuery specific errors
@@ -178,10 +177,7 @@ def scan_sql_error(url: str, param: str) -> Dict[str, Any]:
         "PostgreSQL query failed"
     ]
     try:
-        if '?' in url:
-            target = f"{url}&{param}={payload}"
-        else:
-            target = f"{url}?{param}={payload}"
+        target = replace_or_append_param(url, param, payload)
 
         response = requests.get(target, timeout=5)
         for err in errors:
@@ -193,10 +189,7 @@ def scan_sql_error(url: str, param: str) -> Dict[str, Any]:
 
 def scan_open_redirect(url: str, param: str, target: str = "http://example.com") -> Dict[str, Any]:
     try:
-        if '?' in url:
-            test_url = f"{url}&{param}={target}"
-        else:
-            test_url = f"{url}?{param}={target}"
+        test_url = replace_or_append_param(url, param, target)
 
         response = requests.get(test_url, allow_redirects=False, timeout=5)
         if response.status_code in [301, 302, 307, 308]:
@@ -293,7 +286,7 @@ def check_local_file_inclusion_heuristic(url: str, param: str) -> Dict[str, Any]
     ]
     try:
         for payload in payloads:
-            target = f"{url}?{param}={payload}" if '?' not in url else f"{url}&{param}={payload}"
+            target = replace_or_append_param(url, param, payload)
             res = requests.get(target, timeout=5)
 
             if "root:x:0:0" in res.text or "[extensions]" in res.text:
@@ -409,7 +402,7 @@ def test_xpath_injection(url: str, param: str) -> Dict[str, Any]:
     """
     payload = "' or '1'='1"
     try:
-        target = f"{url}?{param}={payload}" if '?' not in url else f"{url}&{param}={payload}"
+        target = replace_or_append_param(url, param, payload)
         res = requests.get(target, timeout=5)
 
         errors = ["XPathException", "System.Xml.XPath", "SimpleXMLElement"]
@@ -426,7 +419,7 @@ def test_ssi_injection(url: str, param: str) -> Dict[str, Any]:
     """
     payload = "<!--#exec cmd=\"ls\" -->"
     try:
-        target = f"{url}?{param}={payload}" if '?' not in url else f"{url}&{param}={payload}"
+        target = replace_or_append_param(url, param, payload)
         res = requests.get(target, timeout=5)
 
         # Look for file listing or common output
@@ -446,10 +439,7 @@ def check_http_splitting(url: str, param: str) -> Dict[str, Any]:
     try:
         # Payload injects a header
         payload = "%0d%0aX-Injected-Header: test"
-        if '?' in url:
-            target = f"{url}&{param}={payload}"
-        else:
-            target = f"{url}?{param}={payload}"
+        target = replace_or_append_param(url, param, payload)
 
         res = requests.get(target, timeout=5)
 
