@@ -2,6 +2,7 @@ import requests
 import itertools
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from typing import List, Dict, Union, Any
+from .utils import replace_or_append_param
 
 def check_path_traversal(url: str, param: str) -> Dict[str, Any]:
     """
@@ -16,18 +17,9 @@ def check_path_traversal(url: str, param: str) -> Dict[str, Any]:
     ]
 
     try:
-        parsed = urlparse(url)
-        params = parse_qs(parsed.query) # returns dict of lists
-
         results = []
         for payload in payloads:
-            # Inject payload
-            test_params = params.copy()
-            test_params[param] = [payload] # parse_qs uses lists
-
-            # Reconstruct URL
-            new_query = urlencode(test_params, doseq=True)
-            target = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment))
+            target = replace_or_append_param(url, param, payload)
 
             res = requests.get(target, timeout=5)
             if "root:x:0:0" in res.text or "[extensions]" in res.text:
@@ -181,7 +173,7 @@ def test_privilege_escalation_via_parameter(url: str) -> Dict[str, Any]:
     try:
         for p in params_to_test:
             key, val = p.split('=')
-            target = f"{url}?{p}" if '?' not in url else f"{url}&{p}"
+            target = replace_or_append_param(url, key, val)
             res = requests.get(target, timeout=5)
 
             # Very heuristic: check if response size significantly changes or 'admin' appears

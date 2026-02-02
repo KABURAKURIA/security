@@ -7,6 +7,7 @@ import re
 from urllib.parse import urljoin, urlparse
 from fake_useragent import UserAgent
 from typing import List, Dict, Union, Any
+from .utils import get_base_url
 
 def get_robots_txt(url: str) -> Dict[str, Any]:
     """
@@ -19,9 +20,8 @@ def get_robots_txt(url: str) -> Dict[str, Any]:
         Dict[str, Any]: Result with status and data/message.
     """
     try:
-        if not url.endswith('/'):
-            url += '/'
-        response = requests.get(url + "robots.txt", timeout=5)
+        base_url = get_base_url(url)
+        response = requests.get(base_url + "robots.txt", timeout=5)
         if response.status_code == 200:
             return {"status": "success", "data": response.text}
         return {"status": "error", "message": f"HTTP {response.status_code}"}
@@ -33,9 +33,8 @@ def get_sitemap_xml(url: str) -> Dict[str, Any]:
     Fetches and returns the sitemap.xml file.
     """
     try:
-        if not url.endswith('/'):
-            url += '/'
-        response = requests.get(url + "sitemap.xml", timeout=5)
+        base_url = get_base_url(url)
+        response = requests.get(base_url + "sitemap.xml", timeout=5)
         if response.status_code == 200:
             return {"status": "success", "data": response.text}
         return {"status": "error", "message": f"HTTP {response.status_code}"}
@@ -118,21 +117,23 @@ def identify_tech_headers(url: str) -> Dict[str, Any]:
 
 def check_security_txt(url: str) -> Dict[str, Any]:
     """Checks for security.txt file."""
-    paths = ["/.well-known/security.txt", "/security.txt"]
+    paths = [".well-known/security.txt", "security.txt"]
     results = {}
-    if not url.endswith('/'):
-        url += '/'
 
-    for path in paths:
-        try:
-            full_url = url.rstrip('/') + path
-            response = requests.get(full_url, timeout=5)
-            if response.status_code == 200:
-                results[path] = "Found"
-            else:
-                results[path] = "Not Found"
-        except Exception as e:
-            results[path] = f"Error: {str(e)}"
+    try:
+        base_url = get_base_url(url)
+        for path in paths:
+            try:
+                full_url = base_url + path
+                response = requests.get(full_url, timeout=5)
+                if response.status_code == 200:
+                    results[path] = "Found"
+                else:
+                    results[path] = "Not Found"
+            except Exception as e:
+                results[path] = f"Error: {str(e)}"
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
     return {"status": "completed", "results": results}
 
 def extract_links(url: str) -> Dict[str, Any]:

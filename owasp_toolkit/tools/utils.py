@@ -7,6 +7,7 @@ import json
 import xml.dom.minidom
 import ipaddress
 import socket
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from fake_useragent import UserAgent
 from typing import List, Dict, Union, Any
 
@@ -116,3 +117,16 @@ def is_port_open(host: str, port: int, timeout: int = 1) -> bool:
         return result == 0
     except:
         return False
+
+def get_base_url(url: str) -> str:
+    """Returns the scheme and netloc (e.g., http://example.com/)."""
+    parsed = urlparse(url)
+    return f"{parsed.scheme}://{parsed.netloc}/"
+
+def replace_or_append_param(url: str, param: str, value: str) -> str:
+    """Parses the URL, replaces the parameter value if it exists, or appends it if it doesn't."""
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    query[param] = [value]
+    new_query = urlencode(query, doseq=True)
+    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment))

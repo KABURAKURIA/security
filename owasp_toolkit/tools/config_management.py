@@ -1,5 +1,6 @@
 import requests
 from typing import List, Dict, Union, Any
+from .utils import get_base_url
 
 def get_headers(url: str) -> Dict[str, Any]:
     try:
@@ -140,8 +141,8 @@ def check_trace_method(url: str) -> Dict[str, Any]:
 
 def check_crossdomain_xml(url: str) -> Dict[str, Any]:
     try:
-        if not url.endswith('/'): url += '/'
-        res = requests.get(url + "crossdomain.xml", timeout=5)
+        base_url = get_base_url(url)
+        res = requests.get(base_url + "crossdomain.xml", timeout=5)
         if res.status_code == 200:
             return {"status": "found", "message": "Found crossdomain.xml"}
         return {"status": "not_found", "message": "Not found"}
@@ -150,8 +151,8 @@ def check_crossdomain_xml(url: str) -> Dict[str, Any]:
 
 def check_clientaccess_policy(url: str) -> Dict[str, Any]:
     try:
-        if not url.endswith('/'): url += '/'
-        res = requests.get(url + "clientaccesspolicy.xml", timeout=5)
+        base_url = get_base_url(url)
+        res = requests.get(base_url + "clientaccesspolicy.xml", timeout=5)
         if res.status_code == 200:
             return {"status": "found", "message": "Found clientaccesspolicy.xml"}
         return {"status": "not_found", "message": "Not found"}
@@ -161,10 +162,11 @@ def check_clientaccess_policy(url: str) -> Dict[str, Any]:
 def check_sensitive_files(url: str) -> Dict[str, Any]:
     files = ['.env', '.git/HEAD', 'backup.zip', 'web.config.bak']
     found = []
-    if not url.endswith('/'): url += '/'
+    base_url = get_base_url(url)
+
     for f in files:
         try:
-            res = requests.head(url + f, timeout=3)
+            res = requests.head(base_url + f, timeout=3)
             if res.status_code == 200:
                 found.append(f)
         except:

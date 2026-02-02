@@ -2,6 +2,7 @@ import requests
 import time
 import socket
 from typing import List, Dict, Union, Any
+from .utils import replace_or_append_param
 
 def check_anti_automation(url: str, form_data: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -63,10 +64,7 @@ def check_sql_wildcard_dos(url: str, param: str) -> Dict[str, Any]:
         base_time = sum(times) / len(times)
 
         # Inject Wildcard
-        if '?' in url:
-            target = f"{url}&{param}=%"
-        else:
-            target = f"{url}?{param}=%"
+        target = replace_or_append_param(url, param, "%")
 
         start = time.time()
         requests.get(target, timeout=10)
