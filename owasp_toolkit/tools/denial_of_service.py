@@ -1,6 +1,7 @@
 import requests
 import time
 import socket
+import concurrent.futures
 from typing import List, Dict, Union, Any
 from .utils import replace_or_append_param
 
@@ -9,11 +10,22 @@ def check_anti_automation(url: str, form_data: Dict[str, Any]) -> Dict[str, Any]
     Checks if multiple rapid submissions are allowed (lack of rate limiting/CAPTCHA).
     """
     try:
-        # Try sending 5 requests rapidly
         responses = []
-        for _ in range(5):
-            res = requests.post(url, data=form_data, timeout=5)
-            responses.append(res.status_code)
+
+        def send_request():
+            return requests.post(url, data=form_data, timeout=5).status_code
+
+        # Send 10 requests rapidly using threads
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(send_request) for _ in range(10)]
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    responses.append(future.result())
+                except:
+                    pass
+
+        if not responses:
+            return {"status": "error", "message": "Failed to send requests"}
 
         if all(code == 200 for code in responses):
              return {"status": "vulnerable", "message": "Multiple requests accepted (Potential lack of Rate Limiting/Anti-Automation)", "codes": responses}

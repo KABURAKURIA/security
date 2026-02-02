@@ -18,6 +18,49 @@ def scan_reflected_xss(url: str, param: str, payload: str = "<script>alert(1)</s
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+def check_imap_smtp_injection(url: str, param: str) -> Dict[str, Any]:
+    """
+    Checks for IMAP/SMTP Injection by injecting CRLF and SMTP headers.
+    """
+    payloads = [
+        "%0d%0aCc: victim@example.com",
+        "%0d%0aBcc: victim@example.com",
+        "%0d%0aRCPT TO: victim@example.com"
+    ]
+    try:
+        for payload in payloads:
+            target = replace_or_append_param(url, param, payload)
+            res = requests.get(target, timeout=5)
+
+            # Check if injected headers are reflected (Basic Check)
+            # In a real scenario, this would check if the email was sent or if the server responded with an error indicating header processing.
+            # Here we look for reflection or specific error messages.
+            if "Cc:" in res.text or "RCPT TO" in res.text:
+                 return {"status": "vulnerable", "message": f"Potential IMAP/SMTP Injection detected with payload: {payload}"}
+
+        return {"status": "safe", "message": "No obvious IMAP/SMTP injection indicators found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_overflow_vulnerability(url: str, param: str) -> Dict[str, Any]:
+    """
+    Checks for potential buffer overflow by sending a very long string.
+    """
+    try:
+        # Generate a long string
+        payload = "A" * 5000
+        target = replace_or_append_param(url, param, payload)
+
+        res = requests.get(target, timeout=5)
+
+        # Check for 500 error or crash indicators
+        if res.status_code == 500:
+             return {"status": "warning", "message": "Server returned 500 Internal Server Error with long payload (Potential Overflow)"}
+
+        return {"status": "safe", "message": f"Server handled long payload (Status: {res.status_code})"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 def check_nosql_injection(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for NoSQL Injection vulnerabilities (MongoDB).

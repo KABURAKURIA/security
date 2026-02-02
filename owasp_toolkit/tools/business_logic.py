@@ -2,6 +2,8 @@ import hashlib
 import requests
 import re
 import time
+import statistics
+import concurrent.futures
 from typing import List, Dict, Union, Any
 from .utils import replace_or_append_param
 
@@ -132,13 +134,23 @@ def check_timing_attacks(url: str, username: str) -> Dict[str, Any]:
             requests.post(url, data={'username': username, 'password': 'password'}, timeout=5)
             target_times.append(time.time() - start)
 
-        avg_invalid = sum(invalid_times) / iterations
-        avg_target = sum(target_times) / iterations
+        avg_invalid = statistics.mean(invalid_times)
+        avg_target = statistics.mean(target_times)
 
-        # If target takes significantly longer (e.g. 50% more and at least 0.5s difference)
-        # We adjust the threshold to be robust but sensitive enough
-        if avg_target > (avg_invalid * 1.5) and (avg_target - avg_invalid) > 0.5:
-             return {"status": "vulnerable", "message": f"Significant timing difference detected (Avg Invalid: {avg_invalid:.3f}s, Avg Target: {avg_target:.3f}s)"}
+        # Calculate standard deviation if enough data points
+        if len(invalid_times) > 1:
+            stdev_invalid = statistics.stdev(invalid_times)
+        else:
+            stdev_invalid = 0
+
+        # If target takes significantly longer (e.g., > 3 standard deviations from invalid mean)
+        # We use a threshold of 3 sigmas or a static significant difference if stdev is very low
+        threshold = max(0.5, 3 * stdev_invalid)
+
+        diff = avg_target - avg_invalid
+
+        if diff > threshold:
+             return {"status": "vulnerable", "message": f"Significant timing difference detected (Avg Invalid: {avg_invalid:.3f}s, Avg Target: {avg_target:.3f}s, Diff: {diff:.3f}s > Threshold: {threshold:.3f}s)"}
         return {"status": "safe", "message": f"No significant timing difference (Avg Invalid: {avg_invalid:.3f}s, Avg Target: {avg_target:.3f}s)"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -211,11 +223,16 @@ def check_process_timing_issues(url: str) -> Dict[str, Any]:
     Checks if multiple rapid requests cause errors (Race Condition / Concurrency).
     """
     try:
-        # Send 5 requests rapidly
+        # Send requests in parallel using ThreadPoolExecutor
         statuses = []
-        for _ in range(5):
-            res = requests.get(url, timeout=5)
-            statuses.append(res.status_code)
+
+        def fetch(u):
+            return requests.get(u, timeout=5).status_code
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(fetch, url) for _ in range(10)]
+            for future in concurrent.futures.as_completed(futures):
+                statuses.append(future.result())
 
         if len(set(statuses)) > 1:
              return {"status": "warning", "message": "Inconsistent responses received (Race Condition Risk)", "statuses": statuses}
