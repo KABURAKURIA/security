@@ -131,3 +131,24 @@ def check_antivirus_scanning(url: str, field_name: str) -> Dict[str, Any]:
         return {"status": "info", "message": f"Server responded with {res.status_code}"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def check_magic_bytes_validation(url: str, field_name: str) -> Dict[str, Any]:
+    """
+    Verifies if the server validates file content against the file extension by uploading a text file with a .jpg extension.
+    """
+    try:
+        # File has .jpg extension but content is plain text (no magic bytes of JPEG)
+        filename = "fake_image.jpg"
+        content = b"This is just text, not an image."
+        files = {field_name: (filename, content, 'image/jpeg')}
+
+        res = requests.post(url, files=files, timeout=5)
+
+        if res.status_code == 200:
+             return {"status": "vulnerable", "message": "File accepted despite invalid magic bytes (Extension trusted over Content)"}
+        elif res.status_code in [400, 415, 422]:
+             return {"status": "safe", "message": "File rejected (Likely validated magic bytes)"}
+
+        return {"status": "info", "message": f"Server responded with {res.status_code}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
