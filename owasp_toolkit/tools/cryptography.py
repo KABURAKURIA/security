@@ -132,3 +132,38 @@ def check_luhn(card_number: Union[str, int]) -> Dict[str, Any]:
         return {"status": status, "is_valid": is_valid, "message": f"Card number is {status}"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def check_randomness(token: str) -> Dict[str, Any]:
+    """
+    Assesses token predictability by calculating Shannon entropy.
+    """
+    import math
+    if not token: return {"status": "error", "message": "Empty token"}
+
+    prob = [ float(token.count(c)) / len(token) for c in dict.fromkeys(list(token)) ]
+    entropy = - sum([ p * math.log(p) / math.log(2.0) for p in prob ])
+
+    return {"status": "info", "entropy": entropy, "message": f"Entropy: {entropy:.2f}"}
+
+def check_salting_usage(text: str) -> Dict[str, Any]:
+    """
+    Identifies potential salt usage in text (code/config) using regex patterns and maps them to algorithm names.
+    """
+    patterns = {
+        'BCrypt': r'\$2[ayb]\$.{53}',
+        'Argon2': r'\$argon2',
+        'PBKDF2': r'pbkdf2',
+        'Scrypt': r'scrypt',
+        'Salt': r'salt',
+        'SHA-256-Crypt': r'\$5\$',
+        'SHA-512-Crypt': r'\$6\$'
+    }
+
+    found = []
+    for algo, pattern in patterns.items():
+        if re.search(pattern, text, re.IGNORECASE):
+            found.append(algo)
+
+    if found:
+        return {"status": "info", "message": f"Potential salt/hashing usage detected: {found}", "algorithms": found}
+    return {"status": "not_found", "message": "No obvious salt usage patterns found"}

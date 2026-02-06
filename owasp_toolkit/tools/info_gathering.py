@@ -327,3 +327,36 @@ def check_search_engine_caches(url: str) -> Dict[str, Any]:
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def check_dns_txt_records(domain: str) -> Dict[str, Any]:
+    """
+    Performs DNS TXT lookups to identify SPF and DMARC records.
+    """
+    try:
+        result = dns.resolver.resolve(domain, 'TXT')
+        records = [r.to_text() for r in result]
+        return {"status": "success", "records": records}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_multiple_versions(url: str) -> Dict[str, Any]:
+    """
+    Probes for parallel API versions by checking paths like /v1, /v2, /api/v1.
+    """
+    versions = ["v1", "v2", "v3", "api/v1", "api/v2", "api/v3", "2.0", "1.0"]
+    found = []
+    base_url = get_base_url(url)
+
+    try:
+        for v in versions:
+            target = urljoin(base_url, v)
+            res = requests.head(target, timeout=3)
+            # We look for 200 (OK), 401 (Unauthorized), 403 (Forbidden) which imply existence
+            if res.status_code in [200, 401, 403]:
+                found.append(f"{v} (Status: {res.status_code})")
+
+        if found:
+            return {"status": "found", "versions": found, "message": f"Potential API versions found: {found}"}
+        return {"status": "not_found", "message": "No obvious parallel versions found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

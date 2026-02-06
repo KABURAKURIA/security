@@ -300,3 +300,73 @@ def check_user_enumeration(url: str, username_field: str = 'username', password_
         return {"status": "safe", "message": "No obvious enumeration (content or timing) detected"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def check_auth_history(url: str) -> Dict[str, Any]:
+    """
+    Checks if the application displays authentication history (e.g. Last Login).
+    """
+    try:
+        res = requests.get(url, timeout=5)
+        text = res.text.lower()
+        keywords = ["last login", "login history", "active sessions", "recent activity"]
+        found = [kw for kw in keywords if kw in text]
+
+        if found:
+            return {"status": "info", "message": f"Authentication history indicators found: {found}", "indicators": found}
+        return {"status": "not_found", "message": "No obvious authentication history display found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_out_of_channel_notification(url: str) -> Dict[str, Any]:
+    """
+    Checks for indications of out-of-channel notifications (e.g. Email/SMS sent).
+    """
+    try:
+        res = requests.get(url, timeout=5)
+        text = res.text.lower()
+        keywords = ["email sent", "sms sent", "verification code", "check your inbox", "code sent"]
+        found = [kw for kw in keywords if kw in text]
+
+        if found:
+             return {"status": "found", "message": f"Out-of-channel notification indicators found: {found}", "indicators": found}
+        return {"status": "not_found", "message": "No obvious out-of-channel notification messages"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_default_logins(url: str, username_field: str = 'username', password_field: str = 'password') -> Dict[str, Any]:
+    """
+    Attempts to login with a list of common default credentials.
+    """
+    creds = [
+        ('admin', 'admin'),
+        ('admin', 'password'),
+        ('root', 'root'),
+        ('user', 'user'),
+        ('guest', 'guest'),
+        ('test', 'test')
+    ]
+
+    found = []
+    try:
+        # Establish baseline
+        base_res = requests.post(url, data={username_field: 'invalid_random_user', password_field: 'invalid_random_pass'}, timeout=5)
+        base_len = len(base_res.text)
+
+        for user, pwd in creds:
+            # We use a new request for each attempt to be stateless-ish, or could use session.
+            # Uses distinct requests.post calls instead of a shared requests.Session object
+            res = requests.post(url, data={username_field: user, password_field: pwd}, timeout=5)
+
+            # Heuristic: Check for 200 OK (if baseline was not 200) or significant length change or redirect
+            if res.status_code == 200 and base_res.status_code != 200:
+                 found.append(f"{user}:{pwd} (Status Code Change)")
+            elif abs(len(res.text) - base_len) > 50:
+                 found.append(f"{user}:{pwd} (Content Length Change)")
+            elif res.history: # Redirect occurred
+                 found.append(f"{user}:{pwd} (Redirected)")
+
+        if found:
+            return {"status": "vulnerable", "found_credentials": found, "message": "Potential default credentials accepted"}
+        return {"status": "safe", "message": "No common default credentials worked (based on heuristics)"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
