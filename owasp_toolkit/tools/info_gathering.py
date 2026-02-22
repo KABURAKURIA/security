@@ -181,18 +181,17 @@ def spider_crawl(url: str, max_depth: int = 2) -> Dict[str, Any]:
     Basic spidering.
     """
     try:
-        visited = set()
+        processed = set()
         queue = [(url, 0)]
-        found_urls = set()
+        queued = {url}
         base_domain = urlparse(url).netloc
 
         while queue:
             current_url, depth = queue.pop(0)
-            if depth > max_depth or current_url in visited:
+            if depth > max_depth:
                 continue
 
-            visited.add(current_url)
-            found_urls.add(current_url)
+            processed.add(current_url)
 
             try:
                 res = requests.get(current_url, timeout=3)
@@ -200,13 +199,15 @@ def spider_crawl(url: str, max_depth: int = 2) -> Dict[str, Any]:
                     soup = BeautifulSoup(res.text, 'html.parser')
                     for a in soup.find_all('a', href=True):
                         link = urljoin(current_url, a['href'])
+                        link = link.split('#')[0]
                         if urlparse(link).netloc == base_domain:
-                            if link not in visited:
+                            if link not in queued:
+                                queued.add(link)
                                 queue.append((link, depth + 1))
             except:
                 pass
 
-        return {"status": "success", "crawled_count": len(found_urls), "urls": list(found_urls)}
+        return {"status": "success", "crawled_count": len(processed), "urls": list(processed)}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
@@ -318,7 +319,7 @@ def check_search_engine_caches(url: str) -> Dict[str, Any]:
             pass # Fail silently on API error, fall back to links
 
         return {
-            "status": "success" if not wayback_found else "found",
+            "status": "found" if wayback_found else "not_found",
             "google_cache": google_cache,
             "wayback_machine_link": wayback_machine_link,
             "wayback_snapshot_available": wayback_found,

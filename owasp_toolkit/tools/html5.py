@@ -16,12 +16,15 @@ def check_web_storage_usage(url: str) -> Dict[str, Any]:
         scripts = soup.find_all('script')
         usage = []
         for script in scripts:
-            if script.string:
-                if 'localStorage' in script.string:
+            # Check inline content
+            if script.text and script.text.strip():
+                if 'localStorage' in script.text:
                     usage.append("localStorage detected in inline script")
-                if 'sessionStorage' in script.string:
+                if 'sessionStorage' in script.text:
                     usage.append("sessionStorage detected in inline script")
-            elif script.get('src'):
+
+            # Check external source
+            if script.get('src'):
                 src = script.get('src')
                 full_src = urljoin(url, src)
 
