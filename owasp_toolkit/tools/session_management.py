@@ -240,7 +240,6 @@ def check_session_timeout(url: str, session_cookie_name: str = "session") -> Dic
 
     except Exception as e:
         return {"status": "error", "message": str(e)}
-    return {"status": "error", "message": "Unknown error"}
 
 def check_csrf_protection(url: str) -> Dict[str, Any]:
     """
@@ -281,13 +280,25 @@ def check_csrf_protection(url: str) -> Dict[str, Any]:
              if 'SameSite=Strict' not in res.headers['Set-Cookie'] and 'SameSite=Lax' not in res.headers['Set-Cookie']:
                  samesite_missing.append("Session cookies might be missing SameSite attribute")
 
-        if results:
+        # Check for CSRF meta tags (common in SPAs/modern apps)
+        meta_tokens = soup.find_all('meta')
+        meta_token_found = False
+        for meta in meta_tokens:
+            name = meta.get('name', '').lower()
+            if any(t in name for t in csrf_tokens):
+                meta_token_found = True
+                break
+
+        if results and not meta_token_found:
              return {"status": "vulnerable", "form_issues": results, "cookie_issues": samesite_missing}
+        elif results and meta_token_found:
+             # Forms missing tokens, but meta token present (could be AJAX based)
+             return {"status": "warning", "message": "Forms missing visible tokens, but CSRF meta tag found (Likely AJAX/API protection).", "form_issues": results}
 
         if samesite_missing:
              return {"status": "warning", "message": "Forms seem protected, but SameSite attribute might be missing."}
 
-        return {"status": "safe", "message": "CSRF tokens found and/or SameSite attribute detected."}
+        return {"status": "safe", "message": "CSRF tokens found (Forms/Meta) and/or SameSite attribute detected."}
 
     except Exception as e:
         return {"status": "error", "message": str(e)}
