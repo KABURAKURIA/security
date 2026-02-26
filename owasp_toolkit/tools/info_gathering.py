@@ -181,21 +181,24 @@ def spider_crawl(url: str, max_depth: int = 2) -> Dict[str, Any]:
     Basic spidering.
     """
     try:
-        processed = set()
+        visited = set()
+        successful_urls = set()
         queue = [(url, 0)]
         queued = {url}
         base_domain = urlparse(url).netloc
+        failed_urls = []
 
         while queue:
             current_url, depth = queue.pop(0)
             if depth > max_depth:
                 continue
 
-            processed.add(current_url)
+            visited.add(current_url)
 
             try:
                 res = requests.get(current_url, timeout=3)
                 if res.status_code == 200:
+                    successful_urls.add(current_url)
                     soup = BeautifulSoup(res.text, 'html.parser')
                     for a in soup.find_all('a', href=True):
                         link = urljoin(current_url, a['href'])
@@ -204,10 +207,25 @@ def spider_crawl(url: str, max_depth: int = 2) -> Dict[str, Any]:
                             if link not in queued:
                                 queued.add(link)
                                 queue.append((link, depth + 1))
-            except:
-                pass
+                else:
+                    failed_urls.append(f"{current_url} (Status: {res.status_code})")
+            except Exception as e:
+                failed_urls.append(f"{current_url} (Error: {str(e)})")
 
-        return {"status": "success", "crawled_count": len(processed), "urls": list(processed)}
+        status = "success"
+        message = f"Successfully crawled {len(successful_urls)} URLs"
+
+        if not successful_urls and failed_urls:
+            status = "error"
+            message = "Initial URL failed to crawl or returned non-200 status"
+
+        return {
+            "status": status,
+            "crawled_count": len(successful_urls),
+            "urls": list(successful_urls),
+            "failed_urls": failed_urls,
+            "message": message
+        }
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
