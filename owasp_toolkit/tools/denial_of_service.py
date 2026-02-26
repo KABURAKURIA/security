@@ -1,6 +1,7 @@
 import requests
 import time
 import socket
+import statistics
 import concurrent.futures
 from typing import List, Dict, Union, Any
 from .utils import replace_or_append_param
@@ -66,14 +67,15 @@ def check_sql_wildcard_dos(url: str, param: str) -> Dict[str, Any]:
     Checks for SQL Wildcard Denial of Service (e.g. searching for '%').
     """
     try:
-        # Measure baseline (Average of 3 requests)
+        # Measure baseline (Average of 5 requests)
         times = []
-        for _ in range(3):
+        for _ in range(5):
             start = time.time()
             requests.get(url, timeout=5)
             times.append(time.time() - start)
 
-        base_time = sum(times) / len(times)
+        base_time = statistics.mean(times)
+        stdev = statistics.stdev(times) if len(times) > 1 else 0
 
         # Inject Wildcard
         target = replace_or_append_param(url, param, "%")
@@ -82,9 +84,12 @@ def check_sql_wildcard_dos(url: str, param: str) -> Dict[str, Any]:
         requests.get(target, timeout=10)
         dos_time = time.time() - start
 
-        # Use a multiplier of 5 and absolute difference of 2s
-        if dos_time > (base_time * 5) and dos_time > 2:
-             return {"status": "vulnerable", "message": f"Response time significantly increased with wildcard (Baseline Avg: {base_time:.2f}s, Wildcard: {dos_time:.2f}s)"}
+        # Use a dynamic threshold: Avg + Max(2s, 5 * StDev)
+        # This means it must be at least 2 seconds slower AND statistically significant
+        threshold = base_time + max(2.0, 5 * stdev)
+
+        if dos_time > threshold:
+             return {"status": "vulnerable", "message": f"Response time significantly increased with wildcard (Baseline Avg: {base_time:.2f}s, Wildcard: {dos_time:.2f}s, Threshold: {threshold:.2f}s)"}
         return {"status": "safe", "message": f"No significant delay detected with wildcard (Baseline: {base_time:.2f}s, Wildcard: {dos_time:.2f}s)"}
     except Exception as e:
         return {"status": "error", "message": str(e)}

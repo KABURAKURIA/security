@@ -1,8 +1,9 @@
 import requests
 import itertools
+import hashlib
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from typing import List, Dict, Union, Any
-from .utils import replace_or_append_param
+from .utils import replace_or_append_param, generate_random_string
 
 def check_path_traversal(url: str, param: str) -> Dict[str, Any]:
     """
@@ -44,6 +45,19 @@ def check_admin_access(url: str) -> Dict[str, Any]:
     accessible = []
     if not url.endswith('/'): url += '/'
 
+    # Baseline for Soft 404
+    soft_404_len = 0
+    soft_404_hash = None
+
+    try:
+        rand_path = generate_random_string(10)
+        target_404 = url.rstrip('/') + '/' + rand_path + "_404_check"
+        res_404 = requests.get(target_404, timeout=5, allow_redirects=False)
+        soft_404_len = len(res_404.text)
+        soft_404_hash = hashlib.md5(res_404.text.encode('utf-8')).hexdigest()
+    except:
+        pass
+
     for path in admin_paths:
         try:
             target = url.rstrip('/') + path
@@ -51,6 +65,15 @@ def check_admin_access(url: str) -> Dict[str, Any]:
             # If we get a 200 OK and it's not a login page (heuristic), it might be an issue.
             # Or if it's 403/401 it's good.
             if res.status_code == 200:
+                # Soft 404 Check
+                if soft_404_len > 0:
+                    current_len = len(res.text)
+                    current_hash = hashlib.md5(res.text.encode('utf-8')).hexdigest()
+
+                    # Exact match or Length similarity (within 5%)
+                    if current_hash == soft_404_hash or (abs(current_len - soft_404_len) / soft_404_len < 0.05):
+                         continue # Likely soft 404
+
                 # Check for login form keywords to rule out login pages
                 text_lower = res.text.lower()
                 if "login" not in text_lower and "password" not in text_lower and "sign in" not in text_lower:

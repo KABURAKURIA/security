@@ -60,8 +60,8 @@ def check_malicious_file_extensions(url: str, field_name: str) -> Dict[str, Any]
                 results[ext] = "Rejected (Good)"
             else:
                 results[ext] = f"Status {res.status_code}"
-        except:
-            results[ext] = "Error"
+        except Exception as e:
+            results[ext] = f"Error: {str(e)}"
 
     return {"status": "completed", "results": results}
 
