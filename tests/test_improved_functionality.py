@@ -42,14 +42,21 @@ class TestImprovedFunctionality(unittest.TestCase):
     @patch('owasp_toolkit.tools.denial_of_service.requests.get')
     def test_check_sql_wildcard_dos_vulnerable(self, mock_get, mock_time):
         # We need to simulate time passing between calls.
-        # 3 baseline requests = 6 calls to time.time() (start, end)
+        # 5 baseline requests = 10 calls to time.time() (start, end)
         # 1 attack request = 2 calls to time.time() (start, end)
-        # Total 8 calls.
+        # Total 12 calls.
 
         # Let's say baseline takes 0.1s
         # Attack takes 2.5s ( > 0.1*5 and > 2)
 
-        mock_time.side_effect = [0, 0.1, 1, 1.1, 2, 2.1, 3, 5.5]
+        mock_time.side_effect = [
+            0, 0.1,
+            1, 1.1,
+            2, 2.1,
+            3, 3.1,
+            4, 4.1,
+            5, 7.5
+        ]
 
         result = denial_of_service.check_sql_wildcard_dos("http://example.com", "id")
         self.assertEqual(result['status'], 'vulnerable')
