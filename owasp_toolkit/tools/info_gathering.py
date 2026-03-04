@@ -379,3 +379,57 @@ def check_multiple_versions(url: str) -> Dict[str, Any]:
         return {"status": "not_found", "message": "No obvious parallel versions found"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+import subprocess
+
+def run_nmap_scan(target: str = "127.0.0.1", scan_type: str = "Quick (-F)") -> Dict[str, Any]:
+    """
+    Runs an Nmap scan against the specified target.
+
+    Args:
+        target: The IP address or domain to scan.
+        scan_type: The type of Nmap scan to perform. Options: "Basic (-sV)", "Quick (-F)", "Aggressive (-A)", "Ping only (-sn)".
+
+    Returns:
+        Dict[str, Any]: The raw output and command executed.
+    """
+    try:
+        # Sanitize target to prevent basic command injection
+        if not re.match(r"^[a-zA-Z0-9.\-:]+$", target):
+            return {"status": "error", "message": "Invalid target format. Only alphanumeric characters, dots, hyphens, and colons are allowed."}
+
+        cmd = ["nmap"]
+
+        if scan_type == "Basic (-sV)":
+            cmd.append("-sV")
+        elif scan_type == "Quick (-F)":
+            cmd.append("-F")
+        elif scan_type == "Aggressive (-A)":
+            cmd.append("-A")
+        elif scan_type == "Ping only (-sn)":
+            cmd.append("-sn")
+        else:
+            cmd.append("-F") # Safe default
+
+        cmd.append(target)
+
+        # Run the command
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+        if result.returncode == 0:
+            return {
+                "status": "success",
+                "command": " ".join(cmd),
+                "output": result.stdout
+            }
+        else:
+            return {
+                "status": "error",
+                "command": " ".join(cmd),
+                "error_message": result.stderr or result.stdout
+            }
+
+    except subprocess.TimeoutExpired:
+         return {"status": "error", "message": "Nmap scan timed out after 60 seconds."}
+    except Exception as e:
+         return {"status": "error", "message": str(e)}
