@@ -131,12 +131,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🛡️ OWASP Security Toolkit")
-st.markdown("**Nepbrutalist** & **Glassmorphic** Edition")
-
-# Sidebar
-st.sidebar.markdown("### 🧰 Toolkit Menu")
-
 # Map categories to modules
 modules = {
     "Information Gathering": info_gathering,
@@ -154,6 +148,14 @@ modules = {
     "HTML 5": html5,
     "Utilities": utils
 }
+
+total_tools = sum([len([name for name, obj in inspect.getmembers(mod) if inspect.isfunction(obj) and obj.__module__ == mod.__name__]) for mod in modules.values()])
+
+st.title("🛡️ OWASP Security Toolkit")
+st.markdown(f"**Nepbrutalist** & **Glassmorphic** Edition | {total_tools} Tools Available")
+
+# Sidebar
+st.sidebar.markdown("### 🧰 Toolkit Menu")
 
 category = st.sidebar.selectbox("Select Category", list(modules.keys()))
 

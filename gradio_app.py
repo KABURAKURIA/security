@@ -178,9 +178,11 @@ def create_interface(func):
         description=inspect.getdoc(func) or "No description provided."
     )
 
+total_tools = sum([len([name for name, obj in inspect.getmembers(mod) if inspect.isfunction(obj) and obj.__module__ == mod.__name__]) for mod in modules.values()])
+
 with gr.Blocks(css=custom_css, title="OWASP Security Toolkit") as demo:
     gr.Markdown("# 🛡️ OWASP Security Toolkit")
-    gr.Markdown("### > 100 Tools | Nepbrutalist x Glassmorphism Style")
+    gr.Markdown(f"### {total_tools} Tools Available | Nepbrutalist x Glassmorphism Style")
 
     with gr.Tabs():
         for category, module in modules.items():
