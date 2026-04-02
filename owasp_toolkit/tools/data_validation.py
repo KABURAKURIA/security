@@ -42,6 +42,55 @@ def check_imap_smtp_injection(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+def check_dom_xss(url: str) -> Dict[str, Any]:
+    """
+    Performs static analysis on the response text to identify both potential
+    XSS sources (e.g., location.hash) and sinks (e.g., innerHTML).
+    """
+    sources = ['location.hash', 'location.search', 'document.referrer', 'window.name', 'document.cookie']
+    sinks = ['innerHTML', 'outerHTML', 'document.write', 'eval', 'setTimeout', 'setInterval']
+    try:
+        response = requests.get(url, timeout=5)
+        text = response.text
+        found_sources = [src for src in sources if src in text]
+        found_sinks = [sink for sink in sinks if sink in text]
+        if found_sources and found_sinks:
+             return {"status": "vulnerable", "sources": found_sources, "sinks": found_sinks, "message": "Potential DOM XSS components found"}
+        return {"status": "safe", "message": "No obvious DOM XSS components found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_html_injection(url: str, param: str) -> Dict[str, Any]:
+    """
+    Injects a simple HTML tag and checks for verbatim reflection.
+    """
+    payload = "<h1>HTML_INJECTION_TEST</h1>"
+    try:
+        target = replace_or_append_param(url, param, payload)
+        response = requests.get(target, timeout=5)
+        if payload in response.text:
+             return {"status": "vulnerable", "message": "HTML Injection detected: Tag reflected verbatim"}
+        return {"status": "safe", "message": "No obvious HTML injection detected"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def check_cross_site_flashing(url: str) -> Dict[str, Any]:
+    """
+    Checks for the presence of crossdomain.xml and inspects it for wildcard domain access.
+    """
+    try:
+        from .utils import get_base_url
+        base_url = get_base_url(url)
+        target = f"{base_url}/crossdomain.xml"
+        res = requests.get(target, timeout=5)
+        if res.status_code == 200 and 'allow-access-from domain="*"' in res.text:
+            return {"status": "vulnerable", "message": "Insecure crossdomain.xml found with wildcard access"}
+        elif res.status_code == 200:
+            return {"status": "info", "message": "crossdomain.xml found, but no obvious wildcard"}
+        return {"status": "safe", "message": "crossdomain.xml not found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 def check_overflow_vulnerability(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for potential buffer overflow by sending a very long string.
