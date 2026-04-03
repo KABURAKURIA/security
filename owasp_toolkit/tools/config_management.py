@@ -139,7 +139,7 @@ def check_trace_method(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def check_crossdomain_xml(url: str) -> Dict[str, Any]:
+def check_cross_domain_policy(url: str) -> Dict[str, Any]:
     try:
         base_url = get_base_url(url)
         res = requests.get(base_url + "crossdomain.xml", timeout=5)
