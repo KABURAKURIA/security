@@ -208,7 +208,7 @@ if tool_name:
                     if param.default != inspect.Parameter.empty:
                         default_val = param.default
 
-                    if param_type == dict:
+                    if param_type == dict or typing.get_origin(param_type) is dict:
                         val = "{}"
                         if isinstance(default_val, dict):
                             val = json.dumps(default_val)
@@ -229,8 +229,9 @@ if tool_name:
                          inputs[param_name] = st.checkbox(label, value=default_val)
                     elif isinstance(default_val, int):
                          inputs[param_name] = st.number_input(label, value=default_val)
-                    elif isinstance(default_val, list):
-                         inputs[param_name] = st.text_input(f"{label} (comma separated)", value=", ".join(map(str, default_val)))
+                    elif param_type == list or typing.get_origin(param_type) is list or isinstance(default_val, list):
+                         val = ", ".join(map(str, default_val)) if isinstance(default_val, list) else ""
+                         inputs[param_name] = st.text_input(f"{label} (comma separated)", value=val)
                     else:
                          inputs[param_name] = st.text_input(label, value=str(default_val) if default_val != "" else "")
 
@@ -246,7 +247,7 @@ if tool_name:
                     for k, v in inputs.items():
                         param_type = type_hints.get(k)
 
-                        if param_type == dict and isinstance(v, str):
+                        if (param_type == dict or typing.get_origin(param_type) is dict) and isinstance(v, str):
                             try:
                                 final_args[k] = json.loads(v)
                             except Exception as e:
@@ -255,7 +256,7 @@ if tool_name:
                             continue
 
                         # Handle list conversion
-                        if isinstance(params[k].default, list) and isinstance(v, str):
+                        if (param_type == list or typing.get_origin(param_type) is list or isinstance(params[k].default, list)) and isinstance(v, str):
                             try:
                                 items = v.split(',')
                                 final_list = []
