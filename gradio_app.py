@@ -107,7 +107,7 @@ def create_interface(func):
         default_val = param.default if param.default != inspect.Parameter.empty else None
         param_type = type_hints.get(param_name)
 
-        if param_type == dict:
+        if param_type == dict or typing.get_origin(param_type) is dict:
              val = "{}"
              if isinstance(default_val, dict):
                  val = json.dumps(default_val)
@@ -125,8 +125,9 @@ def create_interface(func):
              inputs.append(gr.Checkbox(label=label, value=default_val))
         elif isinstance(default_val, int):
              inputs.append(gr.Number(label=label, value=default_val))
-        elif isinstance(default_val, list):
-             inputs.append(gr.Textbox(label=f"{label} (comma separated)", value=", ".join(map(str, default_val))))
+        elif param_type == list or typing.get_origin(param_type) is list or isinstance(default_val, list):
+             val = ", ".join(map(str, default_val)) if isinstance(default_val, list) else ""
+             inputs.append(gr.Textbox(label=f"{label} (comma separated)", value=val))
         else:
              val = str(default_val) if default_val is not None else ""
              inputs.append(gr.Textbox(label=label, value=val))
@@ -144,14 +145,14 @@ def create_interface(func):
             param_default = sig.parameters[param_name].default
             param_type = type_hints.get(param_name)
 
-            if param_type == dict and isinstance(arg, str):
+            if (param_type == dict or typing.get_origin(param_type) is dict) and isinstance(arg, str):
                 try:
                     converted_args.append(json.loads(arg))
                 except Exception as e:
                     return f"Error parsing JSON for {param_name}: {e}"
                 continue
 
-            if isinstance(param_default, list) and isinstance(arg, str):
+            if (param_type == list or typing.get_origin(param_type) is list or isinstance(param_default, list)) and isinstance(arg, str):
                  try:
                     items = arg.split(',')
                     l = []
