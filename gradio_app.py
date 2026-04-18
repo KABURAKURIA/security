@@ -121,10 +121,10 @@ def create_interface(func):
         elif param_name == 'port':
              val = default_val if default_val is not None else 443
              inputs.append(gr.Number(label=label, value=val, precision=0))
-        elif isinstance(default_val, bool):
-             inputs.append(gr.Checkbox(label=label, value=default_val))
-        elif isinstance(default_val, int):
-             inputs.append(gr.Number(label=label, value=default_val))
+        elif type(default_val) is bool or param_type is bool:
+             inputs.append(gr.Checkbox(label=label, value=default_val if type(default_val) is bool else False))
+        elif type(default_val) is int or param_type is int:
+             inputs.append(gr.Number(label=label, value=default_val if type(default_val) is int else 0))
         elif param_type == list or typing.get_origin(param_type) is list or isinstance(default_val, list):
              val = ", ".join(map(str, default_val)) if isinstance(default_val, list) else ""
              inputs.append(gr.Textbox(label=f"{label} (comma separated)", value=val))
