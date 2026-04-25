@@ -237,12 +237,13 @@ def check_xquery_injection(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def check_null_session_cookie(response: Any) -> Dict[str, Any]:
+def check_null_session_cookie(url: str) -> Dict[str, Any]:
     """
     Manually checks for session cookies in headers if not automatically parsed.
     """
+    import requests
     try:
-        # response should be a requests.Response object
+        response = requests.get(url, timeout=5, allow_redirects=True)
         headers = response.headers
         cookie_header = headers.get('Set-Cookie', '')
 
