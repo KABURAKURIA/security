@@ -53,7 +53,7 @@ def check_cvv_storage(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def validate_luhn_algorithm(card_number: Union[str, int]) -> Dict[str, Any]:
+def validate_luhn_algorithm(card_number: str) -> Dict[str, Any]:
     """
     Validates a credit card number using the Luhn algorithm.
     """
