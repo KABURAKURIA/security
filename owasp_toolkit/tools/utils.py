@@ -46,7 +46,7 @@ def xml_prettify(xml_str: str) -> str:
     except Exception as e:
         return f"Error: {str(e)}"
 
-def cidr_to_ips(cidr: str) -> Union[List[str], Dict[str, str]]:
+def cidr_to_ips(cidr: str) -> Any:
     try:
         return [str(ip) for ip in ipaddress.IPv4Network(cidr)]
     except Exception as e:

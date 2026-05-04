@@ -21,7 +21,7 @@ def validate_data_integrity(expected_hash: str, data: str = None, url: str = Non
                 return {"status": "error", "message": f"Failed to fetch URL. Status: {res.status_code}"}
             content_bytes = res.content
         elif data is not None:
-            content_bytes = data.encode()
+            content_bytes = str(data).encode()
         else:
             return {"status": "error", "message": "Must provide either 'data' or 'url'"}
 

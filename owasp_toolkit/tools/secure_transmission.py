@@ -5,7 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 from typing import List, Dict, Union, Any
 
-def get_ssl_certificate_info(hostname: str, port: int = 443) -> Union[Dict[str, Any], str]:
+def get_ssl_certificate_info(hostname: str, port: int = 443) -> Dict[str, Any]:
     try:
         context = ssl.create_default_context()
         with socket.create_connection((hostname, port), timeout=5) as sock:

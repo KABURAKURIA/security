@@ -107,7 +107,7 @@ def url_decode(text: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def check_luhn(card_number: Union[str, int]) -> Dict[str, Any]:
+def check_luhn(card_number: str) -> Dict[str, Any]:
     """Checks credit card validity using Luhn algorithm."""
     try:
         card_number_str = str(card_number).strip().replace(" ", "").replace("-", "")
