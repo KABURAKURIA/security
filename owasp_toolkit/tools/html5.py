@@ -1,8 +1,10 @@
+from owasp_toolkit.decorators import validate_arguments
 import requests
 from bs4 import BeautifulSoup
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 from urllib.parse import urljoin, urlparse
 
+@validate_arguments
 def check_web_storage_usage(url: str) -> Dict[str, Any]:
     """
     Checks if the application uses LocalStorage or SessionStorage (Static analysis of JS).
@@ -46,6 +48,7 @@ def check_web_storage_usage(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_postmessage_usage(url: str) -> Dict[str, Any]:
     """
     Checks for postMessage usage which can be risky if targetOrigin is '*'.
@@ -58,6 +61,7 @@ def check_postmessage_usage(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_offline_manifest(url: str) -> Dict[str, Any]:
     """
     Checks for HTML5 Offline Cache Manifest.
@@ -72,6 +76,7 @@ def check_offline_manifest(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_cors_wildcard(url: str) -> Dict[str, Any]:
     """
     Checks if Access-Control-Allow-Origin is set to '*'.
@@ -87,6 +92,7 @@ def check_cors_wildcard(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_geolocation_api(url: str) -> Dict[str, Any]:
     """
     Checks if Geolocation API is used.

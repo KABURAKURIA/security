@@ -1,7 +1,9 @@
+from owasp_toolkit.decorators import validate_arguments
 import requests
 import os
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 
+@validate_arguments
 def check_file_upload_size_limit(url: str, field_name: str) -> Dict[str, Any]:
     """
     Tests if the server enforces file size limits.
@@ -22,6 +24,7 @@ def check_file_upload_size_limit(url: str, field_name: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_file_content_type_validation(url: str, field_name: str) -> Dict[str, Any]:
     """
     Checks if the server validates the Content-Type header independently of the file extension.
@@ -41,6 +44,7 @@ def check_file_content_type_validation(url: str, field_name: str) -> Dict[str, A
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_malicious_file_extensions(url: str, field_name: str) -> Dict[str, Any]:
     """
     Tests if the server accepts dangerous file extensions.
@@ -65,6 +69,7 @@ def check_malicious_file_extensions(url: str, field_name: str) -> Dict[str, Any]
 
     return {"status": "completed", "results": results}
 
+@validate_arguments
 def check_upload_accessibility(url: str, upload_dir: str = "uploads/") -> Dict[str, Any]:
     """
     Checks if uploaded files are directly accessible in a common directory.
@@ -83,6 +88,7 @@ def check_upload_accessibility(url: str, upload_dir: str = "uploads/") -> Dict[s
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_svg_xss(url: str, field_name: str) -> Dict[str, Any]:
     """
     Tests for SVG XSS upload.
@@ -100,6 +106,7 @@ def check_svg_xss(url: str, field_name: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def sanitize_filename_check(filename: str) -> Dict[str, Any]:
     """
     Helper to check if a filename is safe (alphanumeric).
@@ -109,6 +116,7 @@ def sanitize_filename_check(filename: str) -> Dict[str, Any]:
         return {"status": "safe", "message": "Safe filename"}
     return {"status": "unsafe", "message": "Unsafe characters detected"}
 
+@validate_arguments
 def check_antivirus_scanning(url: str, field_name: str) -> Dict[str, Any]:
     """
     Checks if the server scans uploaded files for viruses using the EICAR test string.
@@ -132,6 +140,7 @@ def check_antivirus_scanning(url: str, field_name: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_magic_bytes_validation(url: str, field_name: str) -> Dict[str, Any]:
     """
     Verifies if the server validates file content against the file extension by uploading a text file with a .jpg extension.

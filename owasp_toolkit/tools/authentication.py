@@ -1,11 +1,13 @@
+from owasp_toolkit.decorators import validate_arguments
 import requests
 from bs4 import BeautifulSoup
 import re
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 import random
 import string
 import time
 
+@validate_arguments
 def check_login_forms_https(url: str) -> Dict[str, Any]:
     """
     Checks if login forms are served over HTTPS.
@@ -35,6 +37,7 @@ def check_login_forms_https(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_password_autocomplete(url: str) -> Dict[str, Any]:
     """
     Checks if password fields have autocomplete enabled.
@@ -56,6 +59,7 @@ def check_password_autocomplete(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_password_field_type(url: str) -> Dict[str, Any]:
     """
     Counts password fields on the page.
@@ -68,6 +72,7 @@ def check_password_field_type(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_basic_auth(url: str) -> Dict[str, Any]:
     """
     Checks if the endpoint uses Basic Authentication.
@@ -82,6 +87,7 @@ def check_basic_auth(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_default_login_paths(url: str) -> Dict[str, Any]:
     """
     Checks for common default login paths.
@@ -102,6 +108,7 @@ def check_default_login_paths(url: str) -> Dict[str, Any]:
         return {"status": "found", "paths": found}
     return {"status": "not_found", "message": "None found"}
 
+@validate_arguments
 def check_password_strength(password: str) -> Dict[str, Any]:
     """
     Checks the strength of a password.
@@ -125,6 +132,7 @@ def check_password_strength(password: str) -> Dict[str, Any]:
 
     return {"status": "success", "score": score, "feedback": feedback}
 
+@validate_arguments
 def check_captcha_presence(url: str) -> Dict[str, Any]:
     """
     Checks for presence of CAPTCHA keywords in the page content.
@@ -138,6 +146,7 @@ def check_captcha_presence(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_forgot_password(url: str) -> Dict[str, Any]:
     """
     Checks for 'Forgot Password' links.
@@ -153,6 +162,7 @@ def check_forgot_password(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_logout_functionality(url: str) -> Dict[str, Any]:
     """
     Checks for 'Logout' links.
@@ -168,6 +178,7 @@ def check_logout_functionality(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def generate_strong_password(length: int = 16) -> Dict[str, Any]:
     """
     Generates a strong random password.
@@ -176,6 +187,7 @@ def generate_strong_password(length: int = 16) -> Dict[str, Any]:
     password = "".join(random.choice(chars) for _ in range(length))
     return {"status": "success", "password": password, "message": f"Generated password of length {length}"}
 
+@validate_arguments
 def check_account_lockout(url: str, username: str, password_field: str = 'password', username_field: str = 'username') -> Dict[str, Any]:
     """
     Checks for account lockout mechanism by sending multiple failed login attempts.
@@ -204,6 +216,7 @@ def check_account_lockout(url: str, username: str, password_field: str = 'passwo
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_bruteforce_protection(url: str) -> Dict[str, Any]:
     """
     Checks if the login page implements rate limiting or CAPTCHA to prevent bruteforce.
@@ -229,6 +242,7 @@ def check_bruteforce_protection(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_cache_management(url: str) -> Dict[str, Any]:
     """
     Checks if sensitive pages have appropriate cache control headers.
@@ -251,6 +265,7 @@ def check_cache_management(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_user_enumeration(url: str, username_field: str = 'username', password_field: str = 'password', valid_username: str = None, invalid_username: str = None) -> Dict[str, Any]:
     """
     Checks for user enumeration vulnerabilities by comparing server responses for valid vs. invalid usernames.
@@ -301,6 +316,7 @@ def check_user_enumeration(url: str, username_field: str = 'username', password_
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_auth_history(url: str) -> Dict[str, Any]:
     """
     Checks if the application displays authentication history (e.g. Last Login).
@@ -317,6 +333,7 @@ def check_auth_history(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_out_of_channel_notification(url: str) -> Dict[str, Any]:
     """
     Checks for indications of out-of-channel notifications (e.g. Email/SMS sent).
@@ -333,6 +350,7 @@ def check_out_of_channel_notification(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_default_logins(url: str, username_field: str = 'username', password_field: str = 'password') -> Dict[str, Any]:
     """
     Attempts to login with a list of common default credentials.

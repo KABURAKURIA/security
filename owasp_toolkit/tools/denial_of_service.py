@@ -1,11 +1,13 @@
+from owasp_toolkit.decorators import validate_arguments
 import requests
 import time
 import socket
 import statistics
 import concurrent.futures
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 from .utils import replace_or_append_param
 
+@validate_arguments
 def check_anti_automation(url: str, form_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Checks if multiple rapid submissions are allowed (lack of rate limiting/CAPTCHA).
@@ -37,6 +39,7 @@ def check_anti_automation(url: str, form_data: Dict[str, Any]) -> Dict[str, Any]
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_slowloris_susceptibility(host: str, port: int = 80) -> Dict[str, Any]:
     """
     Basic check to see if the server keeps connections open for partial requests.
@@ -62,6 +65,7 @@ def check_slowloris_susceptibility(host: str, port: int = 80) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_sql_wildcard_dos(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for SQL Wildcard Denial of Service (e.g. searching for '%').
@@ -94,6 +98,7 @@ def check_sql_wildcard_dos(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_large_payload_handling(url: str) -> Dict[str, Any]:
     """
     Checks how the server handles large request bodies.
@@ -110,6 +115,7 @@ def check_large_payload_handling(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_xml_bomb_protection(url: str) -> Dict[str, Any]:
     """
     Checks if XML parser is susceptible to Billion Laughs attack (Basic Check).

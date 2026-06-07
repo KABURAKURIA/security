@@ -1,3 +1,4 @@
+from owasp_toolkit.decorators import validate_arguments
 import time
 import math
 import base64
@@ -5,8 +6,9 @@ import json
 import requests
 import datetime
 from bs4 import BeautifulSoup
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 
+@validate_arguments
 def calculate_entropy(string: str) -> float:
     """Calculates the Shannon entropy of a string."""
     if not string: return 0.0
@@ -14,6 +16,7 @@ def calculate_entropy(string: str) -> float:
     entropy = - sum([ p * math.log(p) / math.log(2.0) for p in prob ])
     return entropy
 
+@validate_arguments
 def analyze_cookie_entropy(cookie_value: str) -> Dict[str, Any]:
     entropy = calculate_entropy(cookie_value)
     result = {"entropy": entropy, "value": cookie_value}
@@ -29,6 +32,7 @@ def analyze_cookie_entropy(cookie_value: str) -> Dict[str, Any]:
         result["message"] = f"Low Entropy ({entropy:.2f}): Likely predictable or encoded"
     return result
 
+@validate_arguments
 def decode_jwt_header(token: str) -> Dict[str, Any]:
     try:
         header = token.split('.')[0]
@@ -39,6 +43,7 @@ def decode_jwt_header(token: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def decode_jwt_payload(token: str) -> Dict[str, Any]:
     try:
         payload = token.split('.')[1]
@@ -48,6 +53,7 @@ def decode_jwt_payload(token: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_jwt_alg_none(token: str) -> Dict[str, Any]:
     try:
         header_res = decode_jwt_header(token)
@@ -61,6 +67,7 @@ def check_jwt_alg_none(token: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": "Invalid JWT"}
 
+@validate_arguments
 def check_jwt_expiration(token: str) -> Dict[str, Any]:
     try:
         payload_res = decode_jwt_payload(token)
@@ -78,6 +85,7 @@ def check_jwt_expiration(token: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": "Invalid JWT"}
 
+@validate_arguments
 def check_cookie_path(url: str, cookie_name: str) -> Dict[str, Any]:
     try:
         res = requests.head(url, timeout=5)
@@ -88,6 +96,7 @@ def check_cookie_path(url: str, cookie_name: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_cookie_domain(url: str, cookie_name: str) -> Dict[str, Any]:
     try:
         res = requests.head(url, timeout=5)
@@ -98,6 +107,7 @@ def check_cookie_domain(url: str, cookie_name: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def test_session_puzzling(url: str, vector: str) -> Dict[str, Any]:
     """
     Checks if application uses session variables based on user input (Session Puzzling).
@@ -117,6 +127,7 @@ def test_session_puzzling(url: str, vector: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_session_termination_logout(logout_url: str) -> Dict[str, Any]:
     """
     Verifies if the session is invalidated after logout.
@@ -139,6 +150,7 @@ def check_session_termination_logout(logout_url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def test_multiple_simultaneous_sessions(url: str, username: str, session_token1: str = None, session_token2: str = None, token_name: str = 'session') -> Dict[str, Any]:
     """
     Checks if multiple sessions are allowed for the same user.
@@ -171,6 +183,7 @@ def test_multiple_simultaneous_sessions(url: str, username: str, session_token1:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_session_fixation(url: str) -> Dict[str, Any]:
     """
     Checks if the application accepts a session ID from the URL (Session Fixation).
@@ -186,6 +199,7 @@ def check_session_fixation(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_clickjacking(url: str) -> Dict[str, Any]:
     """
     Checks for Clickjacking protection headers (X-Frame-Options or CSP frame-ancestors).
@@ -214,6 +228,7 @@ def check_clickjacking(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_session_timeout(url: str, session_cookie_name: str = "session") -> Dict[str, Any]:
     """
     Checks session cookie attributes for timeout settings.
@@ -241,6 +256,7 @@ def check_session_timeout(url: str, session_cookie_name: str = "session") -> Dic
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_csrf_protection(url: str) -> Dict[str, Any]:
     """
     Checks for CSRF protection mechanisms in forms on the page.

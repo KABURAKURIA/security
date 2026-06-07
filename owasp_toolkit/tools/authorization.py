@@ -1,10 +1,12 @@
+from owasp_toolkit.decorators import validate_arguments
 import requests
 import itertools
 import hashlib
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 from .utils import replace_or_append_param, generate_random_string
 
+@validate_arguments
 def check_path_traversal(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for Path Traversal vulnerabilities on a specific parameter.
@@ -32,6 +34,7 @@ def check_path_traversal(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_admin_access(url: str) -> Dict[str, Any]:
     """
     Checks if administrative endpoints are accessible without authentication (Vertical Access Control).
@@ -88,6 +91,7 @@ def check_admin_access(url: str) -> Dict[str, Any]:
         return {"status": "warning", "accessible_paths": accessible}
     return {"status": "safe", "message": "No exposed admin endpoints found"}
 
+@validate_arguments
 def check_idor_patterns(url: str) -> Dict[str, Any]:
     """
     Checks for potential IDOR (Insecure Direct Object Reference) candidates in URL structure.
@@ -108,6 +112,7 @@ def check_idor_patterns(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_missing_authorization_headers(url: str) -> Dict[str, Any]:
     """
     Checks if API endpoints return data even without Authorization headers.
@@ -126,6 +131,7 @@ def check_missing_authorization_headers(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def analyze_role_definitions(url: str) -> Dict[str, Any]:
     """
     Heuristic check for role definitions in client-side code.
@@ -143,6 +149,7 @@ def analyze_role_definitions(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def test_horizontal_access_control(url: str, my_id: str, target_id: str) -> Dict[str, Any]:
     """
     Tests if accessing a resource with a different user ID works (Horizontal Privilege Escalation).
@@ -161,6 +168,7 @@ def test_horizontal_access_control(url: str, my_id: str, target_id: str) -> Dict
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def test_bypassing_authorization_schema(url: str) -> Dict[str, Any]:
     """
     Tests for authorization bypass using headers like X-Original-URL.
@@ -187,6 +195,7 @@ def test_bypassing_authorization_schema(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def test_privilege_escalation_via_parameter(url: str) -> Dict[str, Any]:
     """
     Checks if adding 'admin=true' or similar parameters changes the response.
@@ -209,6 +218,7 @@ def test_privilege_escalation_via_parameter(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_forced_browsing(url: str) -> Dict[str, Any]:
     """
     Checks for hidden resources by guessing common names (Forced Browsing).

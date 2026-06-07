@@ -1,12 +1,14 @@
+from owasp_toolkit.decorators import validate_arguments
 import hashlib
 import requests
 import re
 import time
 import statistics
 import concurrent.futures
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 from .utils import replace_or_append_param
 
+@validate_arguments
 def validate_data_integrity(expected_hash: str, data: str = None, url: str = None, algorithm: str = 'sha256') -> Dict[str, Any]:
     """
     Verifies if data (or content from URL) matches the expected hash (integrity check).
@@ -39,6 +41,7 @@ def validate_data_integrity(expected_hash: str, data: str = None, url: str = Non
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_sequential_ids(url: str, param: str) -> Dict[str, Any]:
     """
     Checks if a parameter seems to be using sequential IDs, which might indicate predictable resource usage.
@@ -58,6 +61,7 @@ def check_sequential_ids(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def analyze_workflow_bypass(steps_urls: List[str]) -> Dict[str, Any]:
     """
     Simulates skipping steps in a workflow.
@@ -77,6 +81,7 @@ def analyze_workflow_bypass(steps_urls: List[str]) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_parameter_manipulation(url: str, params: Dict[str, Any]) -> Dict[str, Any]:
     """
     Checks if changing parameter values (e.g. price, quantity) works.
@@ -111,6 +116,7 @@ def check_parameter_manipulation(url: str, params: Dict[str, Any]) -> Dict[str, 
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_timing_attacks(url: str, username: str) -> Dict[str, Any]:
     """
     Checks if login response time differs significantly for valid vs invalid user (User Enumeration).
@@ -155,6 +161,7 @@ def check_timing_attacks(url: str, username: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def test_segregation_of_duties(admin_url: str, user_cookie: Dict[str, str]) -> Dict[str, Any]:
     """
     Tests if a low privilege user can access an admin endpoint.
@@ -167,6 +174,7 @@ def test_segregation_of_duties(admin_url: str, user_cookie: Dict[str, str]) -> D
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def test_trust_relationships(url: str, trusted_origin: str) -> Dict[str, Any]:
     """
     Checks if the application accepts requests from a trusted origin (CORS/Referer).
@@ -182,6 +190,7 @@ def test_trust_relationships(url: str, trusted_origin: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def test_non_repudiation(url: str) -> Dict[str, Any]:
     """
     Checks for headers or tokens that might indicate non-repudiation controls (e.g. strict logging, signatures).
@@ -204,6 +213,7 @@ def test_non_repudiation(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_lack_of_input_validation(url: str, param: str) -> Dict[str, Any]:
     """
     Checks if a parameter accepts special characters without error (Generic).
@@ -218,6 +228,7 @@ def check_lack_of_input_validation(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_process_timing_issues(url: str) -> Dict[str, Any]:
     """
     Checks if multiple rapid requests cause errors (Race Condition / Concurrency).

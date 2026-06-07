@@ -9,7 +9,7 @@ import ipaddress
 import socket
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from fake_useragent import UserAgent
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 
 def extract_emails(text: str) -> List[str]:
     return list(set(re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", text)))
