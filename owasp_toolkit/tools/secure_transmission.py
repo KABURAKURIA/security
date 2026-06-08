@@ -1,10 +1,12 @@
+from owasp_toolkit.decorators import validate_arguments
 import ssl
 import socket
 import datetime
 import requests
 from bs4 import BeautifulSoup
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 
+@validate_arguments
 def get_ssl_certificate_info(hostname: str, port: int = 443) -> Dict[str, Any]:
     try:
         context = ssl.create_default_context()
@@ -15,6 +17,7 @@ def get_ssl_certificate_info(hostname: str, port: int = 443) -> Dict[str, Any]:
     except Exception as e:
         return str(e)
 
+@validate_arguments
 def check_ssl_expiry(hostname: str, port: int = 443) -> Dict[str, Any]:
     try:
         cert = get_ssl_certificate_info(hostname, port)
@@ -38,6 +41,7 @@ def check_ssl_expiry(hostname: str, port: int = 443) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_ssl_issuer(hostname: str, port: int = 443) -> Dict[str, Any]:
     try:
         cert = get_ssl_certificate_info(hostname, port)
@@ -55,6 +59,7 @@ def check_ssl_issuer(hostname: str, port: int = 443) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_https_redirect(url: str) -> Dict[str, Any]:
     try:
         if url.startswith("https://"):
@@ -69,6 +74,7 @@ def check_https_redirect(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_mixed_content(url: str) -> Dict[str, Any]:
     try:
         if not url.startswith("https://"):
@@ -98,6 +104,7 @@ def check_mixed_content(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def get_ssl_version(hostname: str, port: int = 443) -> Dict[str, Any]:
     try:
         # This is a bit tricky as python's ssl module tries to be secure by default.
@@ -109,6 +116,7 @@ def get_ssl_version(hostname: str, port: int = 443) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_hsts_header(url: str) -> Dict[str, Any]:
     # Wrapper for consistency
     try:
@@ -120,6 +128,7 @@ def check_hsts_header(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_weak_ciphers(hostname: str, port: int = 443) -> Dict[str, Any]:
     """
     Checks for weak ciphers usage.
@@ -139,6 +148,7 @@ def check_weak_ciphers(hostname: str, port: int = 443) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_digital_certificate_validity(hostname: str, port: int = 443) -> Dict[str, Any]:
     """
     Comprehensive check of certificate validity (Self-signed, CN mismatch, etc).
@@ -169,6 +179,7 @@ def check_digital_certificate_validity(hostname: str, port: int = 443) -> Dict[s
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_login_over_https(url: str) -> Dict[str, Any]:
     """
     Checks if a login form action uses HTTPS.

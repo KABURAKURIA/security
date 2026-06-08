@@ -1,3 +1,4 @@
+from owasp_toolkit.decorators import validate_arguments
 import requests
 import socket
 import whois
@@ -6,9 +7,10 @@ from bs4 import BeautifulSoup, Comment
 import re
 from urllib.parse import urljoin, urlparse
 from fake_useragent import UserAgent
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 from .utils import get_base_url
 
+@validate_arguments
 def get_robots_txt(url: str) -> Dict[str, Any]:
     """
     Fetches and returns the robots.txt file.
@@ -28,6 +30,7 @@ def get_robots_txt(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def get_sitemap_xml(url: str) -> Dict[str, Any]:
     """
     Fetches and returns the sitemap.xml file.
@@ -41,6 +44,7 @@ def get_sitemap_xml(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_ds_store(url: str) -> Dict[str, Any]:
     """Checks for the existence of .DS_Store file."""
     try:
@@ -53,6 +57,7 @@ def check_ds_store(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def dns_lookup(domain: str) -> Dict[str, Any]:
     """Performs a DNS lookup (A records)."""
     try:
@@ -61,6 +66,7 @@ def dns_lookup(domain: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def mx_lookup(domain: str) -> Dict[str, Any]:
     """Performs a MX lookup."""
     try:
@@ -69,6 +75,7 @@ def mx_lookup(domain: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def whois_lookup(domain: str) -> Dict[str, Any]:
     """Performs a WHOIS lookup."""
     try:
@@ -77,6 +84,7 @@ def whois_lookup(domain: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def scan_ports(host: str, ports: List[str] = ["21", "22", "23", "80", "443", "3306", "8080"]) -> Dict[str, Any]:
     """Scans common ports."""
     open_ports = []
@@ -93,6 +101,7 @@ def scan_ports(host: str, ports: List[str] = ["21", "22", "23", "80", "443", "33
     except Exception as e:
          return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def get_http_headers(url: str) -> Dict[str, Any]:
     """Retrieves HTTP headers."""
     try:
@@ -101,6 +110,7 @@ def get_http_headers(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def identify_tech_headers(url: str) -> Dict[str, Any]:
     """Identifies technologies based on headers."""
     res = get_http_headers(url)
@@ -116,6 +126,7 @@ def identify_tech_headers(url: str) -> Dict[str, Any]:
 
     return {"status": "success", "technologies": techs}
 
+@validate_arguments
 def check_security_txt(url: str) -> Dict[str, Any]:
     """Checks for security.txt file."""
     paths = [".well-known/security.txt", "security.txt"]
@@ -137,6 +148,7 @@ def check_security_txt(url: str) -> Dict[str, Any]:
         return {"status": "error", "message": str(e)}
     return {"status": "completed", "results": results}
 
+@validate_arguments
 def extract_links(url: str) -> Dict[str, Any]:
     """Extracts all href links from the page."""
     try:
@@ -149,6 +161,7 @@ def extract_links(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def extract_comments(url: str) -> Dict[str, Any]:
     """Extracts HTML comments."""
     try:
@@ -159,6 +172,7 @@ def extract_comments(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_mobile_version(url: str) -> Dict[str, Any]:
     """Checks if content differs for mobile user agent."""
     # Using a specific iPhone UA
@@ -176,6 +190,7 @@ def check_mobile_version(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def spider_crawl(url: str, max_depth: int = 2) -> Dict[str, Any]:
     """
     Recursively finds internal links up to max_depth.
@@ -230,6 +245,7 @@ def spider_crawl(url: str, max_depth: int = 2) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_entry_points(url: str) -> Dict[str, Any]:
     """
     Identifies inputs and entry points (forms, parameters).
@@ -255,6 +271,7 @@ def check_entry_points(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def fingerprint_web_application(url: str) -> Dict[str, Any]:
     """
     Attempts to fingerprint the application using heuristic signatures (Wappalyzer-lite).
@@ -285,6 +302,7 @@ def fingerprint_web_application(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_third_party_content(url: str) -> Dict[str, Any]:
     """
     Identifies third-party scripts/content (e.g., CDN, Analytics).
@@ -311,6 +329,7 @@ def check_third_party_content(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_search_engine_caches(url: str) -> Dict[str, Any]:
     """
     Generates links to search engine caches and actively checks availability via APIs (e.g. Wayback Machine).
@@ -348,6 +367,7 @@ def check_search_engine_caches(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_dns_txt_records(domain: str) -> Dict[str, Any]:
     """
     Performs DNS TXT lookups to identify SPF and DMARC records.
@@ -359,6 +379,7 @@ def check_dns_txt_records(domain: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_multiple_versions(url: str) -> Dict[str, Any]:
     """
     Probes for parallel API versions by checking paths like /v1, /v2, /api/v1.
@@ -383,6 +404,7 @@ def check_multiple_versions(url: str) -> Dict[str, Any]:
 
 import subprocess
 
+@validate_arguments
 def run_nmap_scan(target: str = "127.0.0.1", scan_type: str = "Quick (-F)") -> Dict[str, Any]:
     """
     Runs an Nmap scan against the specified target.

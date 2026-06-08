@@ -1,10 +1,12 @@
+from owasp_toolkit.decorators import validate_arguments
 import requests
 from bs4 import BeautifulSoup
 import html
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 import re
 from .utils import replace_or_append_param
 
+@validate_arguments
 def scan_reflected_xss(url: str, param: str, payload: str = "<script>alert(1)</script>") -> Dict[str, Any]:
     """Checks if a payload is reflected in the response body."""
     try:
@@ -18,6 +20,7 @@ def scan_reflected_xss(url: str, param: str, payload: str = "<script>alert(1)</s
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_imap_smtp_injection(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for IMAP/SMTP Injection by injecting CRLF and SMTP headers.
@@ -42,6 +45,7 @@ def check_imap_smtp_injection(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_dom_xss(url: str) -> Dict[str, Any]:
     """
     Performs static analysis on the response text to identify both potential
@@ -60,6 +64,7 @@ def check_dom_xss(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_html_injection(url: str, param: str) -> Dict[str, Any]:
     """
     Injects a simple HTML tag and checks for verbatim reflection.
@@ -74,6 +79,7 @@ def check_html_injection(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_cross_site_flashing(url: str) -> Dict[str, Any]:
     """
     Checks for the presence of crossdomain.xml and inspects it for wildcard domain access.
@@ -91,6 +97,7 @@ def check_cross_site_flashing(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_overflow_vulnerability(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for potential buffer overflow by sending a very long string.
@@ -110,6 +117,7 @@ def check_overflow_vulnerability(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_nosql_injection(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for NoSQL Injection vulnerabilities (MongoDB).
@@ -146,6 +154,7 @@ def check_nosql_injection(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_mass_assignment(url: str, baseline_params: Dict[str, Any], privileged_params: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Checks for Mass Assignment by injecting privileged parameters.
@@ -177,6 +186,7 @@ def check_mass_assignment(url: str, baseline_params: Dict[str, Any], privileged_
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_code_injection(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for Server-Side Code Injection (PHP/Python/etc).
@@ -203,6 +213,7 @@ def check_code_injection(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_expression_language_injection(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for Expression Language (EL) Injection.
@@ -218,6 +229,7 @@ def check_expression_language_injection(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_xquery_injection(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for XQuery Injection.
@@ -237,6 +249,7 @@ def check_xquery_injection(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_null_session_cookie(url: str) -> Dict[str, Any]:
     """
     Manually checks for session cookies in headers if not automatically parsed.
@@ -260,6 +273,7 @@ def check_null_session_cookie(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def scan_sql_error(url: str, param: str) -> Dict[str, Any]:
     """Checks for common SQL error messages."""
     payload = "'"
@@ -280,6 +294,7 @@ def scan_sql_error(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def scan_open_redirect(url: str, param: str, target: str = "http://example.com") -> Dict[str, Any]:
     try:
         test_url = replace_or_append_param(url, param, target)
@@ -293,6 +308,7 @@ def scan_open_redirect(url: str, param: str, target: str = "http://example.com")
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def generate_xss_payloads() -> Dict[str, Any]:
     payloads = [
         "<script>alert('XSS')</script>",
@@ -303,6 +319,7 @@ def generate_xss_payloads() -> Dict[str, Any]:
     ]
     return {"status": "success", "payloads": payloads}
 
+@validate_arguments
 def generate_sqli_payloads() -> Dict[str, Any]:
     payloads = [
         "' OR 1=1 --",
@@ -313,6 +330,7 @@ def generate_sqli_payloads() -> Dict[str, Any]:
     ]
     return {"status": "success", "payloads": payloads}
 
+@validate_arguments
 def generate_lfi_payloads() -> Dict[str, Any]:
     payloads = [
         "../../../../etc/passwd",
@@ -322,6 +340,7 @@ def generate_lfi_payloads() -> Dict[str, Any]:
     ]
     return {"status": "success", "payloads": payloads}
 
+@validate_arguments
 def identify_input_params(url: str) -> Dict[str, Any]:
     """Extracts input names from forms."""
     try:
@@ -333,6 +352,7 @@ def identify_input_params(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_http_verb_tampering(url: str) -> Dict[str, Any]:
     """Checks if other verbs are accepted."""
     verbs = ['HEAD', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
@@ -345,6 +365,7 @@ def check_http_verb_tampering(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def basic_html_encoding(text: str) -> Dict[str, Any]:
     try:
         encoded = html.escape(text)
@@ -352,6 +373,7 @@ def basic_html_encoding(text: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def basic_html_decoding(text: str) -> Dict[str, Any]:
     try:
         decoded = html.unescape(text)
@@ -359,6 +381,7 @@ def basic_html_decoding(text: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_xml_rpc(url: str) -> Dict[str, Any]:
     try:
         if not url.endswith('/'): url += '/'
@@ -369,6 +392,7 @@ def check_xml_rpc(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_local_file_inclusion_heuristic(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for LFI by trying to access common files.
@@ -389,6 +413,7 @@ def check_local_file_inclusion_heuristic(url: str, param: str) -> Dict[str, Any]
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def detect_base64(text: str) -> Dict[str, Any]:
     import base64
     try:
@@ -399,6 +424,7 @@ def detect_base64(text: str) -> Dict[str, Any]:
     except:
         return {"status": "not_detected", "is_base64": False}
 
+@validate_arguments
 def check_stack_trace_exposure(text: str) -> Dict[str, Any]:
     indicators = [
         "Traceback (most recent call last)",
@@ -412,6 +438,7 @@ def check_stack_trace_exposure(text: str) -> Dict[str, Any]:
         return {"status": "vulnerable", "traces_found": found}
     return {"status": "safe", "message": "No stack trace indicators found"}
 
+@validate_arguments
 def generate_cmd_injection_payloads() -> Dict[str, Any]:
     payloads = [
         "; cat /etc/passwd",
@@ -422,6 +449,7 @@ def generate_cmd_injection_payloads() -> Dict[str, Any]:
     ]
     return {"status": "success", "payloads": payloads}
 
+@validate_arguments
 def generate_ldap_payloads() -> Dict[str, Any]:
     payloads = [
         "*",
@@ -432,6 +460,7 @@ def generate_ldap_payloads() -> Dict[str, Any]:
     ]
     return {"status": "success", "payloads": payloads}
 
+@validate_arguments
 def generate_xml_payloads() -> Dict[str, Any]:
     payloads = [
         "<!DOCTYPE foo [<!ELEMENT foo ANY ><!ENTITY xxe SYSTEM \"file:///etc/passwd\" >]><foo>&xxe;</foo>",
@@ -439,6 +468,7 @@ def generate_xml_payloads() -> Dict[str, Any]:
     ]
     return {"status": "success", "payloads": payloads}
 
+@validate_arguments
 def generate_ssti_payloads() -> Dict[str, Any]:
     payloads = [
         "{{7*7}}",
@@ -448,6 +478,7 @@ def generate_ssti_payloads() -> Dict[str, Any]:
     ]
     return {"status": "success", "payloads": payloads}
 
+@validate_arguments
 def check_json_response(url: str) -> Dict[str, Any]:
     try:
         res = requests.get(url, timeout=5)
@@ -456,6 +487,7 @@ def check_json_response(url: str) -> Dict[str, Any]:
     except:
         return {"status": "failure", "message": "Not JSON"}
 
+@validate_arguments
 def check_api_docs(url: str) -> Dict[str, Any]:
     paths = ['/swagger.json', '/api/docs', '/docs', '/redoc', '/openapi.json']
     found = []
@@ -471,6 +503,7 @@ def check_api_docs(url: str) -> Dict[str, Any]:
         return {"status": "found", "docs": found}
     return {"status": "not_found", "message": "No API docs found"}
 
+@validate_arguments
 def test_xxe_injection(url: str, param: str) -> Dict[str, Any]:
     """
     Simulates XXE injection attempt.
@@ -489,6 +522,7 @@ def test_xxe_injection(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def test_xpath_injection(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for XPath Injection errors.
@@ -506,6 +540,7 @@ def test_xpath_injection(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def test_ssi_injection(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for Server Side Include (SSI) injection.
@@ -525,6 +560,7 @@ def test_ssi_injection(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_http_splitting(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for HTTP Response Splitting (CRLF Injection).
@@ -543,6 +579,7 @@ def check_http_splitting(url: str, param: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_parameter_pollution(url: str, param: str) -> Dict[str, Any]:
     """
     Checks for HTTP Parameter Pollution (HPP) vulnerabilities.

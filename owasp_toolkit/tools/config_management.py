@@ -1,7 +1,9 @@
+from owasp_toolkit.decorators import validate_arguments
 import requests
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 from .utils import get_base_url
 
+@validate_arguments
 def get_headers(url: str) -> Dict[str, Any]:
     try:
         response = requests.head(url, timeout=5)
@@ -9,6 +11,7 @@ def get_headers(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_csp(url: str) -> Dict[str, Any]:
     headers_res = get_headers(url)
     if headers_res['status'] == 'error': return headers_res
@@ -18,6 +21,7 @@ def check_csp(url: str) -> Dict[str, Any]:
         return {"status": "found", "value": val}
     return {"status": "missing", "message": "Content-Security-Policy header is missing"}
 
+@validate_arguments
 def check_hsts(url: str) -> Dict[str, Any]:
     headers_res = get_headers(url)
     if headers_res['status'] == 'error': return headers_res
@@ -27,6 +31,7 @@ def check_hsts(url: str) -> Dict[str, Any]:
         return {"status": "found", "value": val}
     return {"status": "missing", "message": "Strict-Transport-Security header is missing"}
 
+@validate_arguments
 def check_x_frame_options(url: str) -> Dict[str, Any]:
     headers_res = get_headers(url)
     if headers_res['status'] == 'error': return headers_res
@@ -36,6 +41,7 @@ def check_x_frame_options(url: str) -> Dict[str, Any]:
         return {"status": "found", "value": val}
     return {"status": "missing", "message": "X-Frame-Options header is missing"}
 
+@validate_arguments
 def check_x_content_type_options(url: str) -> Dict[str, Any]:
     headers_res = get_headers(url)
     if headers_res['status'] == 'error': return headers_res
@@ -45,6 +51,7 @@ def check_x_content_type_options(url: str) -> Dict[str, Any]:
         return {"status": "found", "value": val}
     return {"status": "missing", "message": "X-Content-Type-Options header is missing"}
 
+@validate_arguments
 def check_cors(url: str) -> Dict[str, Any]:
     headers_res = get_headers(url)
     if headers_res['status'] == 'error': return headers_res
@@ -54,6 +61,7 @@ def check_cors(url: str) -> Dict[str, Any]:
         return {"status": "found", "value": val}
     return {"status": "info", "message": "Not explicitly set in headers"}
 
+@validate_arguments
 def check_server_signature(url: str) -> Dict[str, Any]:
     headers_res = get_headers(url)
     if headers_res['status'] == 'error': return headers_res
@@ -63,6 +71,7 @@ def check_server_signature(url: str) -> Dict[str, Any]:
         return {"status": "found", "value": val}
     return {"status": "info", "message": "Not disclosed"}
 
+@validate_arguments
 def check_x_powered_by(url: str) -> Dict[str, Any]:
     headers_res = get_headers(url)
     if headers_res['status'] == 'error': return headers_res
@@ -72,6 +81,7 @@ def check_x_powered_by(url: str) -> Dict[str, Any]:
         return {"status": "found", "value": val}
     return {"status": "info", "message": "Not disclosed"}
 
+@validate_arguments
 def check_referrer_policy(url: str) -> Dict[str, Any]:
     headers_res = get_headers(url)
     if headers_res['status'] == 'error': return headers_res
@@ -81,6 +91,7 @@ def check_referrer_policy(url: str) -> Dict[str, Any]:
         return {"status": "found", "value": val}
     return {"status": "missing", "message": "Referrer-Policy header is missing"}
 
+@validate_arguments
 def check_permissions_policy(url: str) -> Dict[str, Any]:
     headers_res = get_headers(url)
     if headers_res['status'] == 'error': return headers_res
@@ -90,6 +101,7 @@ def check_permissions_policy(url: str) -> Dict[str, Any]:
         return {"status": "found", "value": val}
     return {"status": "missing", "message": "Permissions-Policy header is missing"}
 
+@validate_arguments
 def check_cookie_flags(url: str) -> Dict[str, Any]:
     try:
         response = requests.get(url, timeout=5)
@@ -120,6 +132,7 @@ def check_cookie_flags(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_options_method(url: str) -> Dict[str, Any]:
     try:
         response = requests.options(url, timeout=5)
@@ -130,6 +143,7 @@ def check_options_method(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_trace_method(url: str) -> Dict[str, Any]:
     try:
         response = requests.request('TRACE', url, timeout=5)
@@ -139,6 +153,7 @@ def check_trace_method(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_cross_domain_policy(url: str) -> Dict[str, Any]:
     try:
         base_url = get_base_url(url)
@@ -149,6 +164,7 @@ def check_cross_domain_policy(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_clientaccess_policy(url: str) -> Dict[str, Any]:
     try:
         base_url = get_base_url(url)
@@ -159,6 +175,7 @@ def check_clientaccess_policy(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_sensitive_files(url: str) -> Dict[str, Any]:
     files = ['.env', '.git/HEAD', 'backup.zip', 'web.config.bak']
     found = []
@@ -175,6 +192,7 @@ def check_sensitive_files(url: str) -> Dict[str, Any]:
         return {"status": "vulnerable", "files_found": found}
     return {"status": "safe", "message": "None found"}
 
+@validate_arguments
 def check_backup_files(url: str, filename: str) -> Dict[str, Any]:
     """
     Checks for backup versions of a specific file (e.g. index.php.bak).
@@ -195,6 +213,7 @@ def check_backup_files(url: str, filename: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_http_methods(url: str) -> Dict[str, Any]:
     """
     Checks enabled HTTP methods (OPTIONS, PUT, DELETE, etc.).
@@ -212,6 +231,7 @@ def check_http_methods(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_client_side_sensitive_data(url: str) -> Dict[str, Any]:
     """
     Scans response body for keywords like 'API_KEY', 'password', etc.
@@ -236,6 +256,7 @@ def check_client_side_sensitive_data(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_cross_site_tracing(url: str) -> Dict[str, Any]:
     """
     Specifically checks for XST (Cross-Site Tracing) vulnerability via TRACE method reflecting headers.
@@ -248,6 +269,7 @@ def check_cross_site_tracing(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_test_data(url: str) -> Dict[str, Any]:
     """
     Checks for common test data artifacts left in production.

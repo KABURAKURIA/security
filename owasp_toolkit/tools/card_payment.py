@@ -1,7 +1,9 @@
+from owasp_toolkit.decorators import validate_arguments
 import requests
 import re
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 
+@validate_arguments
 def check_payment_gateway_https(url: str) -> Dict[str, Any]:
     """
     Ensures payment pages are served over HTTPS.
@@ -10,6 +12,7 @@ def check_payment_gateway_https(url: str) -> Dict[str, Any]:
         return {"status": "vulnerable", "message": "CRITICAL: Payment page not using HTTPS!"}
     return {"status": "safe", "message": "Using HTTPS (Good)"}
 
+@validate_arguments
 def check_default_payment_passwords(url: str) -> Dict[str, Any]:
     """
     Checks for common default credentials for payment gateways (simulated).
@@ -36,6 +39,7 @@ def check_default_payment_passwords(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_cvv_storage(url: str) -> Dict[str, Any]:
     """
     Heuristic check if CVV/CVC is being stored or passed in URL (Violation of PCI-DSS).
@@ -53,6 +57,7 @@ def check_cvv_storage(url: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def validate_luhn_algorithm(card_number: str) -> Dict[str, Any]:
     """
     Validates a credit card number using the Luhn algorithm.
@@ -81,6 +86,7 @@ def validate_luhn_algorithm(card_number: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@validate_arguments
 def check_autocomplete_on_payment_fields(url: str) -> Dict[str, Any]:
     """
     Checks if sensitive payment fields have autocomplete disabled.
