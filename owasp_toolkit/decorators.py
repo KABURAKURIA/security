@@ -29,7 +29,7 @@ def validate_arguments(func):
                     elif ann is str:
                         if not isinstance(value, str):
                             bound_args.arguments[name] = str(value)
-            return func(*bound_args.args, **bound_args.kwargs)
         except (TypeError, ValueError) as e:
             return {"status": "error", "message": str(e)}
+        return func(*bound_args.args, **bound_args.kwargs)
     return wrapper
