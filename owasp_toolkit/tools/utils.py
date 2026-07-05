@@ -11,14 +11,14 @@ from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from fake_useragent import UserAgent
 from typing import List, Dict, Any
 
-def extract_emails(text: str) -> List[str]:
-    return list(set(re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", text)))
+def extract_emails(text: str) -> str:
+    return ",".join(list(set(re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", text))))
 
-def extract_ipv4(text: str) -> List[str]:
-    return list(set(re.findall(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", text)))
+def extract_ipv4(text: str) -> str:
+    return ",".join(list(set(re.findall(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", text))))
 
-def extract_urls(text: str) -> List[str]:
-    return list(set(re.findall(r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+", text)))
+def extract_urls(text: str) -> str:
+    return ",".join(list(set(re.findall(r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+", text))))
 
 def generate_random_string(length: int = 12) -> str:
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))

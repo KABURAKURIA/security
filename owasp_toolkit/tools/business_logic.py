@@ -62,17 +62,18 @@ def check_sequential_ids(url: str, param: str) -> Dict[str, Any]:
         return {"status": "error", "message": str(e)}
 
 @validate_arguments
-def analyze_workflow_bypass(steps_urls: List[str]) -> Dict[str, Any]:
+def analyze_workflow_bypass(steps_urls: str) -> Dict[str, Any]:
     """
     Simulates skipping steps in a workflow.
-    Input: list of URLs representing steps [step1, step2, step3]
+    Input: comma separated URLs representing steps
     """
+    urls_list = [s.strip() for s in steps_urls.split(",") if s.strip()]
     try:
         # Try accessing step 3 directly
-        if len(steps_urls) < 2:
+        if len(urls_list) < 2:
              return {"status": "error", "message": "Need at least 2 steps"}
 
-        last_step = steps_urls[-1]
+        last_step = urls_list[-1]
         res = requests.get(last_step, timeout=5)
 
         if res.status_code == 200:

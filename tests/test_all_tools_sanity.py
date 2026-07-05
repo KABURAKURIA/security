@@ -39,11 +39,11 @@ class TestAllToolsSanity(unittest.TestCase):
         if name == 'filename':
             return "test.txt"
         if name == 'ports':
-            return [80, 443]
+            return "80, 443"
         if name == 'form_data':
             return {"user": "admin", "pass": "123"}
         if name == 'steps_urls':
-            return ["http://example.com/step1", "http://example.com/step2"]
+            return "http://example.com/step1, http://example.com/step2"
         if name == 'length':
             return 10
         if name == 'param':

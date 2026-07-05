@@ -85,11 +85,13 @@ def whois_lookup(domain: str) -> Dict[str, Any]:
         return {"status": "error", "message": str(e)}
 
 @validate_arguments
-def scan_ports(host: str, ports: List[str] = ["21", "22", "23", "80", "443", "3306", "8080"]) -> Dict[str, Any]:
+def scan_ports(host: str, ports: str = "21, 22, 23, 80, 443, 3306, 8080") -> Dict[str, Any]:
     """Scans common ports."""
+    ports_list = [p.strip() for p in ports.split(",")]
+
     open_ports = []
     try:
-        for port in ports:
+        for port in ports_list:
             port = int(port)
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(1)
