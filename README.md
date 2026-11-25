@@ -1,16 +1,10 @@
-# 🛡️ OWASP-Aligned Security Assessment Toolkit
-
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-UI-FF4B4B.svg?logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![Gradio](https://img.shields.io/badge/Gradio-Interface-orange.svg)](https://gradio.app/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![OWASP](https://img.shields.io/badge/Security-OWASP%20Top%2010-red.svg)](https://owasp.org/)
+# OWASP-Aligned Security Assessment Toolkit
 
 A modular cybersecurity assessment suite and vulnerability testing framework containing **100+ automated tools** aligned with the OWASP Testing Guide and Top 10 vulnerabilities, accessible via CLI, Streamlit, and Gradio interfaces.
 
 ---
 
-## 🧱 Toolkit Modules
+## Toolkit Modules
 
 ```
 owasp_toolkit/
@@ -28,7 +22,7 @@ owasp_toolkit/
 
 ---
 
-## 🚀 Usage & Launching Dashboards
+## Usage & Launching Dashboards
 
 ```bash
 # Clone the repository
@@ -50,12 +44,12 @@ pytest tests/
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 This toolkit is developed exclusively for authorized penetration testing, security research, and defensive hardening. Always obtain proper authorization before scanning any target infrastructure.
 
 ---
 
-## 📄 License
+## License
 
 MIT License.
